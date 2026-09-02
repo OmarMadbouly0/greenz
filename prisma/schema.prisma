@@ -6,3 +6,48 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  customer
+  admin
+  collector
+
+  @@map("user_roles")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  full_name     String
+  email         String    @unique
+  password_hash String?
+  last_login_at DateTime? @db.Timestamptz(3)
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+
+  role UserRole @default(customer)
+
+  @@map("users")
+}
+
+model Governorate {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
+
+  cities City[]
+
+  @@map("governorates")
+}
+
+model City {
+  id             Int      @id @default(autoincrement())
+  governorate_id Int
+  name           String
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime @updatedAt @db.Timestamptz(3)
+
+  governorate Governorate @relation(fields: [governorate_id], references: [id], onDelete: Restrict)
+
+  @@map("cities")
+}
