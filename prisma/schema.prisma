@@ -33,6 +33,14 @@ enum PickupStatus {
   @@map("pickup_statuses")
 }
 
+enum PayoutStatus {
+  pending
+  paid
+  cancelled
+
+  @@map("payout_statuses")
+}
+
 model User {
   id            Int       @id @default(autoincrement())
   full_name     String
@@ -69,9 +77,10 @@ model City {
   created_at     DateTime @default(now()) @db.Timestamptz(3)
   updated_at     DateTime @updatedAt @db.Timestamptz(3)
 
-  governorate Governorate @relation(fields: [governorate_id], references: [id])
+  governorate Governorate @relation(fields: [governorate_id], references: [id], onDelete: Restrict)
   addresses   Address[]
 
+  @@unique([governorate_id, name])
   @@map("cities")
 }
 
@@ -86,8 +95,8 @@ model Address {
   created_at   DateTime @default(now()) @db.Timestamptz(3)
   updated_at   DateTime @updatedAt @db.Timestamptz(3)
 
-  user    User     @relation(fields: [user_id], references: [id])
-  city    City     @relation(fields: [city_id], references: [id])
+  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  city    City     @relation(fields: [city_id], references: [id], onDelete: Restrict)
   pickups Pickup[]
 
   @@map("addresses")
@@ -107,36 +116,38 @@ model Material {
 }
 
 model Pickup {
-  id               Int          @id @default(autoincrement())
-  customer_id      Int
-  collector_id     Int?
-  address_id       Int
-  status           PickupStatus @default(pending)
-  estimated_payout Decimal      @db.Decimal(10, 2)
-  final_payout     Decimal?     @db.Decimal(10, 2)
-  requested_at     DateTime     @default(now()) @db.Timestamptz(3)
-  completed_at     DateTime?    @db.Timestamptz(3)
-  cancelled_at     DateTime?    @db.Timestamptz(3)
-  created_at       DateTime     @default(now()) @db.Timestamptz(3)
-  updated_at       DateTime     @updatedAt @db.Timestamptz(3)
+  id            Int          @id @default(autoincrement())
+  customer_id   Int
+  collector_id  Int?
+  address_id    Int
+  status        PickupStatus @default(pending)
+  note          String?
+  payout        Decimal?     @db.Decimal(10, 2)
+  payout_status PayoutStatus @default(pending)
 
-  customer  User         @relation("CustomerPickups", fields: [customer_id], references: [id])
-  collector User?        @relation("CollectorPickups", fields: [collector_id], references: [id])
-  address   Address      @relation(fields: [address_id], references: [id])
+  requested_at DateTime  @default(now()) @db.Timestamptz(3)
+  completed_at DateTime? @db.Timestamptz(3)
+  cancelled_at DateTime? @db.Timestamptz(3)
+  created_at   DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime  @updatedAt @db.Timestamptz(3)
+
+  customer  User         @relation("CustomerPickups", fields: [customer_id], references: [id], onDelete: Restrict)
+  collector User?        @relation("CollectorPickups", fields: [collector_id], references: [id], onDelete: SetNull)
+  address   Address      @relation(fields: [address_id], references: [id], onDelete: Restrict)
   items     PickupItem[]
 
   @@map("pickups")
 }
 
 model PickupItem {
-  id                 Int      @id @default(autoincrement())
-  pickup_id          Int
-  material_id        Int
-  price_per_unit     Decimal  @db.Decimal(10, 2)
-  estimated_quantity Decimal  @db.Decimal(10, 2)
-  actual_quantity    Decimal? @db.Decimal(10, 2)
-  created_at         DateTime @default(now()) @db.Timestamptz(3)
-  updated_at         DateTime @updatedAt @db.Timestamptz(3)
+  id             Int      @id @default(autoincrement())
+  pickup_id      Int
+  material_id    Int
+  price_per_unit Decimal  @db.Decimal(10, 2)
+  quantity       Decimal  @db.Decimal(10, 2)
+  note           String?
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime @updatedAt @db.Timestamptz(3)
 
   pickup   Pickup   @relation(fields: [pickup_id], references: [id], onDelete: Cascade)
   material Material @relation(fields: [material_id], references: [id], onDelete: Restrict)
@@ -163,7 +174,7 @@ model WalletTransaction {
   amount     Decimal  @db.Decimal(12, 2)
   created_at DateTime @default(now()) @db.Timestamptz(3)
 
-  wallet Wallet @relation(fields: [wallet_id], references: [id])
+  wallet Wallet @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
 
   @@map("wallet_transactions")
 }
