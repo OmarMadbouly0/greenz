@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User } from "../../generated/prisma/client";
+import { User } from "@/../generated/prisma/client";
 import { cookies } from "next/headers";
-import { prisma } from "./prisma";
+import { getPrisma } from "@/infrastructure/database/prisma";
 import { UserRole } from "@/types";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -34,6 +34,7 @@ export async function getCurrentUser(): Promise<User | null> {
       return null;
     }
     const decode = verifyToken(token);
+    const prisma = getPrisma();
     const userFromDb = await prisma.user.findUnique({
       where: { id: decode.userId },
     });

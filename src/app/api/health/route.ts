@@ -1,7 +1,6 @@
-import { checkDatabaseConnection } from "@/lib/db";
-
+import { healthService } from "@/services/health.service";
 export async function GET() {
-  const isConnected = await checkDatabaseConnection();
+  const isConnected = await healthService.checkDatabaseConnection();
 
   if (!isConnected) {
     return Response.json(
