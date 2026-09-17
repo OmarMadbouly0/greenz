@@ -37,3 +37,9 @@ export class ConflictError extends ApplicationError {
     super(message, 409);
   }
 }
+
+export class InvalidTokenError extends ApplicationError {
+  constructor(message: string) {
+    super(message, 401);
+  }
+}

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { InvalidTokenError } from "@/shared/errors/application-error";
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -15,13 +16,18 @@ export function generateToken(userId: number): string {
 }
 
 export function verifyToken(token: string): { userId: number } {
-  const payload = jwt.verify(token, getJwtSecret()) as { userId: number };
+  let payload: string | jwt.JwtPayload;
+  try {
+    payload = jwt.verify(token, getJwtSecret());
+  } catch {
+    throw new InvalidTokenError("Invalid or expired token.");
+  }
   if (
     typeof payload !== "object" ||
     payload === null ||
     typeof payload.userId !== "number"
   ) {
-    throw new Error("Invalid token payload.");
+    throw new InvalidTokenError("Invalid token payload.");
   }
 
   return {
