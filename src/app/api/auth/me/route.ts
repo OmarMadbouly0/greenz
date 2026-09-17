@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/modules/identity/application/current-user";
 import { apiOk } from "@/app/api/_shared/responses";
 import { handleRouteError } from "@/app/api/_shared/route-errors";
-import { read } from "fs";
 import { readJsonBody } from "../../_shared/request-body";
 import { parseInput } from "@/shared/validation/parse-input";
 import { updateProfileSchema } from "@/services/auth.schemas";
