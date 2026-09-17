@@ -1,5 +1,4 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
-import { email } from "zod";
 
 export const userRepository = {
   async findById(id: number) {
@@ -27,6 +26,27 @@ export const userRepository = {
         password_hash: input.passwordHash,
         role: "customer",
       },
+    });
+  },
+  async findByEmail(email: string) {
+    return getPrisma().user.findUnique({
+      where: { email },
+    });
+  },
+  async updateLastLogin(userId: number) {
+    return getPrisma().user.update({
+      where: { id: userId },
+      data: { last_login_at: new Date() },
+    });
+  },
+  async updateProfile(userId: number, input: { fullName?: string }) {
+    const data: { full_name?: string } = {};
+    if (input.fullName) {
+      data.full_name = input.fullName;
+    }
+    return getPrisma().user.update({
+      where: { id: userId },
+      data,
     });
   },
 };
