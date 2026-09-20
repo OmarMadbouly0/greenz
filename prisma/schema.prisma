@@ -15,8 +15,13 @@ enum UserRole {
   @@map("user_roles")
 }
 
+//export const materialUnit = ["kg", "g", "l", "ml", "piece"] as const;
+
 enum MaterialUnit {
   kg
+  g
+  l
+  ml
   piece
 
   @@map("material_units")
@@ -85,15 +90,15 @@ model City {
 }
 
 model Address {
-  id           Int      @id @default(autoincrement())
-  user_id      Int
-  city_id      Int
-  address_line String
-  building     String?
-  floor        String?
-  apartment    String?
-  created_at   DateTime @default(now()) @db.Timestamptz(3)
-  updated_at   DateTime @updatedAt @db.Timestamptz(3)
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  city_id    Int
+  street     String
+  building   String?
+  floor      String?
+  apartment  String?
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   city    City     @relation(fields: [city_id], references: [id], onDelete: Restrict)
@@ -107,8 +112,10 @@ model Material {
   name          String       @unique
   unit          MaterialUnit
   current_price Decimal      @db.Decimal(10, 2)
-  created_at    DateTime     @default(now()) @db.Timestamptz(3)
-  updated_at    DateTime     @updatedAt @db.Timestamptz(3)
+  description   String?
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   pickup_items PickupItem[]
 

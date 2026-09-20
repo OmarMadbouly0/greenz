@@ -1,3 +1,4 @@
+import { hashPassword } from "@/modules/identity/application/password";
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
@@ -101,6 +102,23 @@ async function main() {
     });
   }
 
+  const adminPassword = await hashPassword("Admin12345");
+
+  await prisma.user.upsert({
+    where: {
+      email: "admin@greenz.local",
+    },
+    update: {
+      role: "admin",
+      password_hash: adminPassword,
+    },
+    create: {
+      full_name: "GreenZ Admin",
+      email: "admin@greenz.local",
+      password_hash: adminPassword,
+      role: "admin",
+    },
+  });
   console.log("GreenZ seed completed successfully.");
 }
 

@@ -39,14 +39,17 @@ export const userRepository = {
       data: { last_login_at: new Date() },
     });
   },
-  async updateProfile(userId: number, input: { fullName?: string }) {
-    const data: { full_name?: string } = {};
-    if (input.fullName) {
-      data.full_name = input.fullName;
-    }
+  async updateProfile(
+    userId: number,
+    input: {
+      fullName?: string;
+    },
+  ) {
     return getPrisma().user.update({
       where: { id: userId },
-      data,
+      data: {
+        full_name: input.fullName,
+      },
     });
   },
 };

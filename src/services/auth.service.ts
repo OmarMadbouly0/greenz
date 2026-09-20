@@ -6,6 +6,7 @@ import {
 import { userRepository } from "@/repositories/user.repository";
 import {
   ConflictError,
+  InvalidRequestError,
   UnauthorizedError,
 } from "@/shared/errors/application-error";
 import {
@@ -13,6 +14,9 @@ import {
   verifyPassword,
 } from "@/modules/identity/application/password";
 import { generateToken } from "@/modules/identity/application/jwt";
+import { addressRepository } from "@/repositories/address.repository";
+import { cityRepository } from "@/repositories/city.repository";
+
 export const authService = {
   async registerUser(input: RegisterInput) {
     const emailExists = await userRepository.emailExists(input.email);
@@ -20,11 +24,31 @@ export const authService = {
       throw new ConflictError("Email already exists");
     }
     const passwordHash = await hashPassword(input.password);
-    return userRepository.create({
+
+    const city = await cityRepository.findById(input.address.cityId);
+
+    if (!city) {
+      throw new InvalidRequestError("Invalid city");
+    }
+
+    const user = await userRepository.create({
       fullName: input.fullName,
       email: input.email,
       passwordHash: passwordHash,
     });
+
+    const address = await addressRepository.create(user.id, {
+      cityId: input.address.cityId,
+      street: input.address.street,
+      building: input.address.building,
+      apartment: input.address.apartment,
+      floor: input.address.floor,
+    });
+
+    return {
+      user,
+      address,
+    };
   },
   async loginUser(input: LoginInput) {
     const user = await userRepository.findByEmail(input.email);
@@ -50,6 +74,20 @@ export const authService = {
     };
   },
   async updateUserProfile(userId: number, input: UpdateProfileInput) {
-    return userRepository.updateProfile(userId, input);
+    const user = await userRepository.updateProfile(userId, {
+      fullName: input.fullName,
+    });
+
+    if (input.address) {
+      await addressRepository.update(userId, {
+        cityId: input.address.cityId,
+        street: input.address.street,
+        building: input.address.building,
+        apartment: input.address.apartment,
+        floor: input.address.floor,
+      });
+    }
+
+    return user;
   },
 };
