@@ -2,6 +2,7 @@ export class ApplicationError extends Error {
   constructor(
     message: string,
     public status: number,
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApplicationError";
@@ -9,8 +10,8 @@ export class ApplicationError extends Error {
 }
 
 export class InvalidRequestError extends ApplicationError {
-  constructor(message: string) {
-    super(message, 400);
+  constructor(message: string, details?: unknown) {
+    super(message, 400, details);
   }
 }
 

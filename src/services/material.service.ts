@@ -5,7 +5,7 @@ export const materialService = {
   async getMaterials() {
     const materials = await materialRepository.getMaterials();
     if (!materials) {
-      throw new NotFoundError("Materials not found.");
+      throw new NotFoundError("No Materials!");
     }
     return materials;
   },

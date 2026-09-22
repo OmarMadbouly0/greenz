@@ -23,12 +23,6 @@ export const addressRepository = {
     });
   },
 
-  async findByUserId(userId: number) {
-    return getPrisma().address.findUnique({
-      where: { user_id: userId },
-    });
-  },
-
   async update(
     userId: number,
     input: {

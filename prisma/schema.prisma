@@ -56,9 +56,9 @@ model User {
   created_at    DateTime  @default(now()) @db.Timestamptz(3)
   updated_at    DateTime  @updatedAt @db.Timestamptz(3)
 
-  addresses        Address[]
-  pickups          Pickup[]  @relation("CustomerPickups")
-  assigned_pickups Pickup[]  @relation("CollectorPickups")
+  address          Address?
+  pickups          Pickup[] @relation("CustomerPickups")
+  assigned_pickups Pickup[] @relation("CollectorPickups")
   wallet           Wallet?
 
   @@map("users")
@@ -100,9 +100,8 @@ model Address {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt @db.Timestamptz(3)
 
-  user    User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  city    City     @relation(fields: [city_id], references: [id], onDelete: Restrict)
-  pickups Pickup[]
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  city City @relation(fields: [city_id], references: [id], onDelete: Restrict)
 
   @@map("addresses")
 }
@@ -126,7 +125,6 @@ model Pickup {
   id            Int          @id @default(autoincrement())
   customer_id   Int
   collector_id  Int?
-  address_id    Int
   status        PickupStatus @default(pending)
   note          String?
   payout        Decimal?     @db.Decimal(10, 2)
@@ -135,12 +133,12 @@ model Pickup {
   requested_at DateTime  @default(now()) @db.Timestamptz(3)
   completed_at DateTime? @db.Timestamptz(3)
   cancelled_at DateTime? @db.Timestamptz(3)
-  created_at   DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at   DateTime  @updatedAt @db.Timestamptz(3)
+
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 
   customer  User         @relation("CustomerPickups", fields: [customer_id], references: [id], onDelete: Restrict)
   collector User?        @relation("CollectorPickups", fields: [collector_id], references: [id], onDelete: SetNull)
-  address   Address      @relation(fields: [address_id], references: [id], onDelete: Restrict)
   items     PickupItem[]
 
   @@map("pickups")

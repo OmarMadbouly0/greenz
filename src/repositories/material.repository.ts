@@ -12,6 +12,15 @@ export const materialRepository = {
       where: { id: materialId },
     });
   },
+  async getMaterialsByIds(materialsIds: number[]) {
+    return getPrisma().material.findMany({
+      where: {
+        id: {
+          in: materialsIds,
+        },
+      },
+    });
+  },
   async getMaterialByName(name: string) {
     return getPrisma().material.findUnique({
       where: { name },
