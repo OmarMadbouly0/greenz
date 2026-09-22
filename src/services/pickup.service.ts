@@ -1,7 +1,12 @@
 import { materialRepository } from "@/repositories/material.repository";
 import { CreatePickupInput, UpdatePickupStatusInput } from "./pickup.schemas";
 import { pickupRepository } from "@/repositories/pickup.repository";
-import { InvalidRequestError } from "@/shared/errors/application-error";
+import { userRepository } from "@/repositories/user.repository";
+
+import {
+  InvalidRequestError,
+  NotFoundError,
+} from "@/shared/errors/application-error";
 
 type UserRole = "customer" | "collector" | "admin";
 
@@ -44,7 +49,7 @@ export const pickupService = {
   async cancelPickup(userId: number, pickupId: number) {
     const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
     if (!pickup) {
-      throw new InvalidRequestError("Pickup not found.");
+      throw new NotFoundError("Pickup not found.");
     }
     if (pickup.status !== "pending" && pickup.status !== "assigned") {
       throw new InvalidRequestError(
@@ -102,8 +107,21 @@ export const pickupService = {
       pickupId,
     );
     if (!pickup) {
-      throw new InvalidRequestError("Pickup not found.");
+      throw new NotFoundError("Pickup not found.");
     }
     return pickupRepository.updatePickupStatus(collectorId, pickupId, input);
+  },
+
+  async assignPickupToCollector(collectorId: number, pickupId: number) {
+    const pickup = await pickupRepository.getPickupById(pickupId);
+    if (!pickup) {
+      throw new NotFoundError("Pickup not found.");
+    }
+    const collector = await userRepository.getCollectorById(collectorId);
+
+    if (!collector) {
+      throw new NotFoundError("Collector not found.");
+    }
+    return pickupRepository.assignPickupToCollector(collectorId, pickupId);
   },
 };

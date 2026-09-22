@@ -1,5 +1,4 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
-
 export const pickupRepository = {
   async getPickupsByCustomerId(userId: number) {
     return getPrisma().pickup.findMany({
@@ -100,6 +99,27 @@ export const pickupRepository = {
       },
       data: {
         status: input.status,
+      },
+    });
+  },
+  async getPickupById(pickupId: number) {
+    return getPrisma().pickup.findUnique({
+      where: {
+        id: pickupId,
+      },
+      include: {
+        items: true,
+      },
+    });
+  },
+  async assignPickupToCollector(collectorId: number, pickupId: number) {
+    return getPrisma().pickup.update({
+      where: {
+        id: pickupId,
+      },
+      data: {
+        collector_id: collectorId,
+        status: "assigned",
       },
     });
   },

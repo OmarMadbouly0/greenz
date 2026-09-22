@@ -26,3 +26,11 @@ export const updatePickupStatusSchema = z.object({
 });
 
 export type UpdatePickupStatusInput = z.output<typeof updatePickupStatusSchema>;
+
+export const assignPickupToCollectorSchema = z.object({
+  collectorId: requiredId("Collector"),
+});
+
+export type AssignPickupToCollectorInput = z.output<
+  typeof assignPickupToCollectorSchema
+>;

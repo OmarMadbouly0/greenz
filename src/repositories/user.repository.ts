@@ -39,6 +39,14 @@ export const userRepository = {
       data: { last_login_at: new Date() },
     });
   },
+  async getCollectorById(userId: number) {
+    return getPrisma().user.findFirst({
+      where: {
+        id: userId,
+        role: "collector",
+      },
+    });
+  },
   async updateProfile(
     userId: number,
     input: {
