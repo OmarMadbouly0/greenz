@@ -10,9 +10,12 @@ import { parseInput } from "@/shared/validation/parse-input";
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer"]);
+    await requireRole(currentUser, ["customer", "collector"]);
 
-    const pickups = await pickupService.getPickups(currentUser.id);
+    const pickups = await pickupService.getPickups(
+      currentUser.id,
+      currentUser.role ,
+    );
 
     return apiOk(pickups, 200);
   } catch (error) {

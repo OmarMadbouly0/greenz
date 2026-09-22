@@ -1,11 +1,59 @@
 import { materialRepository } from "@/repositories/material.repository";
-import { CreatePickupInput } from "./pickup.schemas";
+import { CreatePickupInput, UpdatePickupStatusInput } from "./pickup.schemas";
 import { pickupRepository } from "@/repositories/pickup.repository";
 import { InvalidRequestError } from "@/shared/errors/application-error";
+
+type UserRole = "customer" | "collector" | "admin";
+
 export const pickupService = {
-  async getPickups(userId: number) {
-    return pickupRepository.getPickupsByUserId(userId);
+  async getPickups(userId: number, role: UserRole) {
+    {
+      if (role === "customer") {
+        return pickupRepository.getPickupsByCustomerId(userId);
+      }
+
+      return pickupRepository.getPickupsByCollectorId(userId);
+    }
   },
+
+  async getPickupById(userId: number, role: UserRole, pickupId: number) {
+    if (role === "customer") {
+      const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
+
+      if (!pickup) {
+        throw new InvalidRequestError("Pickup not found.");
+      }
+      return pickup;
+    }
+
+    if (role === "collector") {
+      const pickup = await pickupRepository.getPickupByCollectorId(
+        userId,
+        pickupId,
+      );
+
+      if (!pickup) {
+        throw new InvalidRequestError("Pickup not found.");
+      }
+      return pickup;
+    }
+
+    throw new InvalidRequestError("Invalid user role.");
+  },
+
+  async cancelPickup(userId: number, pickupId: number) {
+    const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
+    if (!pickup) {
+      throw new InvalidRequestError("Pickup not found.");
+    }
+    if (pickup.status !== "pending" && pickup.status !== "assigned") {
+      throw new InvalidRequestError(
+        "Only pending or assigned pickups can be canceled.",
+      );
+    }
+    return pickupRepository.cancelPickup(userId, pickupId);
+  },
+
   async createPickup(userId: number, input: CreatePickupInput) {
     const materialIds = input.items.map((item) => item.materialId);
     const materials = await materialRepository.getMaterialsByIds(materialIds);
@@ -42,5 +90,20 @@ export const pickupService = {
       payout,
       items,
     });
+  },
+
+  async updatePickupStatus(
+    collectorId: number,
+    pickupId: number,
+    input: UpdatePickupStatusInput,
+  ) {
+    const pickup = await pickupRepository.getPickupByCollectorId(
+      collectorId,
+      pickupId,
+    );
+    if (!pickup) {
+      throw new InvalidRequestError("Pickup not found.");
+    }
+    return pickupRepository.updatePickupStatus(collectorId, pickupId, input);
   },
 };

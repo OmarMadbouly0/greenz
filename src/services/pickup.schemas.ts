@@ -20,3 +20,9 @@ export const createPickupSchema = z.object({
 });
 
 export type CreatePickupInput = z.output<typeof createPickupSchema>;
+
+export const updatePickupStatusSchema = z.object({
+  status: z.enum(["on_the_way", "arrived", "completed"]),
+});
+
+export type UpdatePickupStatusInput = z.output<typeof updatePickupStatusSchema>;

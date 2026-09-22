@@ -1,13 +1,35 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
 
 export const pickupRepository = {
-  async getPickupsByUserId(userId: number) {
+  async getPickupsByCustomerId(userId: number) {
     return getPrisma().pickup.findMany({
       where: {
         customer_id: userId,
       },
       orderBy: {
         created_at: "desc",
+      },
+    });
+  },
+
+  async getPickupsByCollectorId(userId: number) {
+    return getPrisma().pickup.findMany({
+      where: {
+        collector_id: userId,
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+    });
+  },
+  async getPickupByUserId(userId: number, pickupId: number) {
+    return getPrisma().pickup.findFirst({
+      where: {
+        id: pickupId,
+        customer_id: userId,
+      },
+      include: {
+        items: true,
       },
     });
   },
@@ -38,6 +60,46 @@ export const pickupRepository = {
             note: item.note,
           })),
         },
+      },
+    });
+  },
+  async cancelPickup(userId: number, pickupId: number) {
+    return getPrisma().pickup.updateMany({
+      where: {
+        id: pickupId,
+        customer_id: userId,
+        status: {
+          in: ["pending", "assigned"],
+        },
+      },
+      data: {
+        status: "cancelled",
+      },
+    });
+  },
+  async getPickupByCollectorId(collectorId: number, pickupId: number) {
+    return getPrisma().pickup.findFirst({
+      where: {
+        id: pickupId,
+        collector_id: collectorId,
+      },
+      include: {
+        items: true,
+      },
+    });
+  },
+  async updatePickupStatus(
+    collectorId: number,
+    pickupId: number,
+    input: { status: "on_the_way" | "arrived" | "completed" },
+  ) {
+    return getPrisma().pickup.update({
+      where: {
+        id: pickupId,
+        collector_id: collectorId,
+      },
+      data: {
+        status: input.status,
       },
     });
   },
