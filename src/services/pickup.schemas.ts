@@ -34,3 +34,9 @@ export const assignPickupToCollectorSchema = z.object({
 export type AssignPickupToCollectorInput = z.output<
   typeof assignPickupToCollectorSchema
 >;
+
+export const updatePayoutStatusSchema = z.object({
+  status: z.enum(["paid", "cancelled"]),
+});
+
+export type UpdatePayoutStatusInput = z.output<typeof updatePayoutStatusSchema>;
