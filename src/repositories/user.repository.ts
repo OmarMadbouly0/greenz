@@ -26,8 +26,35 @@ export const userRepository = {
         password_hash: input.passwordHash,
         role: "customer",
       },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        role: true,
+      },
     });
   },
+  async createCollector(input: {
+    fullName: string;
+    email: string;
+    passwordHash: string;
+  }) {
+    return getPrisma().user.create({
+      data: {
+        full_name: input.fullName,
+        email: input.email,
+        password_hash: input.passwordHash,
+        role: "collector",
+      },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        role: true,
+      },
+    });
+  },
+
   async findByEmail(email: string) {
     return getPrisma().user.findUnique({
       where: { email },
@@ -57,6 +84,18 @@ export const userRepository = {
       where: { id: userId },
       data: {
         full_name: input.fullName,
+      },
+    });
+  },
+  async getUsersByRole(role: "customer" | "collector" | "admin") {
+    return getPrisma().user.findMany({
+      where: { role },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        role: true,
       },
     });
   },
