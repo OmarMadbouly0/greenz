@@ -240,4 +240,32 @@ export const pickupRepository = {
       },
     });
   },
+
+  async countPickups() {
+    return getPrisma().pickup.count();
+  },
+
+  async countPickupsByStatus(
+    status:
+      | "pending"
+      | "assigned"
+      | "on_the_way"
+      | "arrived"
+      | "completed"
+      | "cancelled",
+  ) {
+    return getPrisma().pickup.count({
+      where: {
+        status,
+      },
+    });
+  },
+
+  async countPayoutsByStatus(status: "pending" | "paid" | "cancelled") {
+    return getPrisma().pickup.count({
+      where: {
+        payout_status: status,
+      },
+    });
+  },
 };

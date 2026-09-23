@@ -99,4 +99,12 @@ export const userRepository = {
       },
     });
   },
+
+  async countUsersByRole(role: "customer" | "collector" | "admin") {
+    return getPrisma().user.count({
+      where: {
+        role,
+      },
+    });
+  },
 };
