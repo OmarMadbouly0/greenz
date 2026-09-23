@@ -119,6 +119,24 @@ async function main() {
       role: "admin",
     },
   });
+  const collectorPassword = await hashPassword("Collector12345");
+
+  await prisma.user.upsert({
+    where: {
+      email: "collector@greenz.local",
+    },
+    update: {
+      role: "collector",
+      password_hash: collectorPassword,
+    },
+    create: {
+      full_name: "GreenZ Collector",
+      email: "collector@greenz.local",
+      password_hash: collectorPassword,
+      role: "collector",
+    },
+  });
+
   console.log("GreenZ seed completed successfully.");
 }
 
