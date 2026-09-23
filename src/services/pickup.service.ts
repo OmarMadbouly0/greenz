@@ -1,5 +1,9 @@
 import { materialRepository } from "@/repositories/material.repository";
-import { CreatePickupInput, UpdatePickupStatusInput } from "./pickup.schemas";
+import {
+  CreatePickupInput,
+  UpdatePayoutStatusInput,
+  UpdatePickupStatusInput,
+} from "./pickup.schemas";
 import { pickupRepository } from "@/repositories/pickup.repository";
 import { userRepository } from "@/repositories/user.repository";
 
@@ -12,22 +16,21 @@ type UserRole = "customer" | "collector" | "admin";
 
 export const pickupService = {
   async getPickups(userId: number, role: UserRole) {
-    {
-      if (role === "customer") {
-        return pickupRepository.getPickupsByCustomerId(userId);
-      }
-
+    if (role === "customer") {
+      return pickupRepository.getPickupsByCustomerId(userId);
+    }
+    if (role === "collector") {
       return pickupRepository.getPickupsByCollectorId(userId);
     }
+    if (role === "admin") {
+      return pickupRepository.getAllPickups();
+    }
+    throw new InvalidRequestError("Invalid user role.");
   },
 
   async getPickupById(userId: number, role: UserRole, pickupId: number) {
     if (role === "customer") {
       const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
-
-      if (!pickup) {
-        throw new InvalidRequestError("Pickup not found.");
-      }
       return pickup;
     }
 
@@ -36,10 +39,10 @@ export const pickupService = {
         userId,
         pickupId,
       );
-
-      if (!pickup) {
-        throw new InvalidRequestError("Pickup not found.");
-      }
+      return pickup;
+    }
+    if (role === "admin") {
+      const pickup = await pickupRepository.getPickupById(pickupId);
       return pickup;
     }
 
@@ -123,5 +126,25 @@ export const pickupService = {
       throw new NotFoundError("Collector not found.");
     }
     return pickupRepository.assignPickupToCollector(collectorId, pickupId);
+  },
+
+  async updatePayoutStatus(pickupId: number, input: UpdatePayoutStatusInput) {
+    const pickup = await pickupRepository.getPickupById(pickupId);
+
+    if (!pickup) {
+      throw new NotFoundError("Pickup not found.");
+    }
+
+    if (pickup.status !== "completed") {
+      throw new InvalidRequestError(
+        "Payout can only be updated for completed pickups.",
+      );
+    }
+
+    if (pickup.payout_status !== "pending") {
+      throw new InvalidRequestError("Payout has already been done.");
+    }
+
+    return pickupRepository.updatePayoutStatus(pickupId, input);
   },
 };

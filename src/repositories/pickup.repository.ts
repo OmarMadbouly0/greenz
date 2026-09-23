@@ -1,4 +1,9 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
+import {
+  UpdatePayoutStatusInput,
+  UpdatePickupStatusInput,
+} from "@/services/pickup.schemas";
+
 export const pickupRepository = {
   async getPickupsByCustomerId(userId: number) {
     return getPrisma().pickup.findMany({
@@ -7,6 +12,58 @@ export const pickupRepository = {
       },
       orderBy: {
         created_at: "desc",
+      },
+    });
+  },
+  async getAllPickups() {
+    return getPrisma().pickup.findMany({
+      orderBy: {
+        created_at: "desc",
+      },
+      select: {
+        id: true,
+        status: true,
+        note: true,
+        payout: true,
+        payout_status: true,
+        requested_at: true,
+        completed_at: true,
+        cancelled_at: true,
+        created_at: true,
+        updated_at: true,
+
+        customer: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        collector: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price_per_unit: true,
+            note: true,
+
+            material: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+              },
+            },
+          },
+        },
       },
     });
   },
@@ -63,7 +120,7 @@ export const pickupRepository = {
     });
   },
   async cancelPickup(userId: number, pickupId: number) {
-    return getPrisma().pickup.updateMany({
+    return getPrisma().pickup.update({
       where: {
         id: pickupId,
         customer_id: userId,
@@ -73,6 +130,8 @@ export const pickupRepository = {
       },
       data: {
         status: "cancelled",
+        cancelled_at: new Date(),
+        payout_status: "cancelled",
       },
     });
   },
@@ -87,10 +146,11 @@ export const pickupRepository = {
       },
     });
   },
+
   async updatePickupStatus(
     collectorId: number,
     pickupId: number,
-    input: { status: "on_the_way" | "arrived" | "completed" },
+    { status }: UpdatePickupStatusInput,
   ) {
     return getPrisma().pickup.update({
       where: {
@@ -98,17 +158,61 @@ export const pickupRepository = {
         collector_id: collectorId,
       },
       data: {
-        status: input.status,
+        status,
+        completed_at: status === "completed" ? new Date() : undefined,
       },
     });
   },
+
   async getPickupById(pickupId: number) {
     return getPrisma().pickup.findUnique({
       where: {
         id: pickupId,
       },
-      include: {
-        items: true,
+      select: {
+        id: true,
+        status: true,
+        note: true,
+        payout: true,
+        payout_status: true,
+        requested_at: true,
+        completed_at: true,
+        cancelled_at: true,
+        created_at: true,
+        updated_at: true,
+
+        customer: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        collector: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price_per_unit: true,
+            note: true,
+
+            material: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+              },
+            },
+          },
+        },
       },
     });
   },
@@ -120,6 +224,19 @@ export const pickupRepository = {
       data: {
         collector_id: collectorId,
         status: "assigned",
+      },
+    });
+  },
+  async updatePayoutStatus(
+    pickupId: number,
+    { status }: UpdatePayoutStatusInput,
+  ) {
+    return getPrisma().pickup.update({
+      where: {
+        id: pickupId,
+      },
+      data: {
+        payout_status: status,
       },
     });
   },

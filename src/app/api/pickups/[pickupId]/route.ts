@@ -15,7 +15,7 @@ export async function GET(
   try {
     const currentUser = await getCurrentUser();
 
-    await requireRole(currentUser, ["customer", "collector"]);
+    await requireRole(currentUser, ["customer", "collector", "admin"]);
 
     const pickupId = parseId((await params).pickupId);
 
