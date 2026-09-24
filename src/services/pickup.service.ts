@@ -11,6 +11,7 @@ import {
   InvalidRequestError,
   NotFoundError,
 } from "@/shared/errors/application-error";
+import { walletRepository } from "@/repositories/wallet.repository";
 
 type UserRole = "customer" | "collector" | "admin";
 
@@ -127,7 +128,7 @@ export const pickupService = {
     }
     return pickupRepository.assignPickupToCollector(collectorId, pickupId);
   },
-
+  //admin
   async updatePayoutStatus(pickupId: number, input: UpdatePayoutStatusInput) {
     const pickup = await pickupRepository.getPickupById(pickupId);
 
@@ -145,6 +146,23 @@ export const pickupService = {
       throw new InvalidRequestError("Payout has already been done.");
     }
 
-    return pickupRepository.updatePayoutStatus(pickupId, input);
+    if (!pickup.payout) {
+      throw new InvalidRequestError("Pickup has no payout amount.");
+    }
+
+    if (input.status === "paid") {
+      const wallet = await walletRepository.getWalletByUserId(
+        pickup.customer.id,
+      );
+      if (!wallet) {
+        throw new NotFoundError("Customer wallet not found.");
+      }
+
+      return pickupRepository.payPickup(pickupId, wallet.id, pickup.payout);
+    }
+
+    if (input.status === "cancelled") {
+      return pickupRepository.cancelPayout(pickupId);
+    }
   },
 };

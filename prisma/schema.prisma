@@ -165,6 +165,7 @@ model Wallet {
   id         Int      @id @default(autoincrement())
   user_id    Int      @unique
   balance    Decimal  @default(0) @db.Decimal(12, 2)
+  phone      String   @unique
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt @db.Timestamptz(3)
 

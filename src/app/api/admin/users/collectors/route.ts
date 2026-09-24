@@ -1,9 +1,9 @@
 import { getCurrentUser } from "@/modules/identity/application/current-user";
 import { requireRole } from "@/modules/identity/application/guards";
-import { apiOk } from "../../_shared/responses";
-import { handleRouteError } from "../../_shared/route-errors";
+import { apiOk } from "../../../_shared/responses";
+import { handleRouteError } from "../../../_shared/route-errors";
 import { collectorService } from "@/services/collector.service";
-import { readJsonBody } from "../../_shared/request-body";
+import { readJsonBody } from "../../../_shared/request-body";
 import { parseInput } from "@/shared/validation/parse-input";
 import { registerCollectorSchema } from "@/services/collector.schemas";
 export async function GET() {

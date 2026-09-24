@@ -1,9 +1,7 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
-import {
-  UpdatePayoutStatusInput,
-  UpdatePickupStatusInput,
-} from "@/services/pickup.schemas";
-
+import { UpdatePickupStatusInput } from "@/services/pickup.schemas";
+import { withTransaction } from "@/infrastructure/database/prisma";
+import { Prisma } from "@/../generated/prisma/client";
 export const pickupRepository = {
   async getPickupsByCustomerId(userId: number) {
     return getPrisma().pickup.findMany({
@@ -227,19 +225,6 @@ export const pickupRepository = {
       },
     });
   },
-  async updatePayoutStatus(
-    pickupId: number,
-    { status }: UpdatePayoutStatusInput,
-  ) {
-    return getPrisma().pickup.update({
-      where: {
-        id: pickupId,
-      },
-      data: {
-        payout_status: status,
-      },
-    });
-  },
 
   async countPickups() {
     return getPrisma().pickup.count();
@@ -265,6 +250,47 @@ export const pickupRepository = {
     return getPrisma().pickup.count({
       where: {
         payout_status: status,
+      },
+    });
+  },
+  async payPickup(pickupId: number, walletId: number, payout: Prisma.Decimal) {
+    return withTransaction(async (tx) => {
+      await tx.wallet.update({
+        where: {
+          id: walletId,
+        },
+        data: {
+          balance: {
+            increment: payout,
+          },
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          wallet_id: walletId,
+          pickup_id: pickupId,
+          amount: payout,
+        },
+      });
+
+      return tx.pickup.update({
+        where: {
+          id: pickupId,
+        },
+        data: {
+          payout_status: "paid",
+        },
+      });
+    });
+  },
+  async cancelPayout(pickupId: number) {
+    return getPrisma().pickup.update({
+      where: {
+        id: pickupId,
+      },
+      data: {
+        payout_status: "cancelled",
       },
     });
   },

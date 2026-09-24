@@ -78,3 +78,13 @@ export function optionalNumber(label: string, min: number, max: number) {
     .max(max, `${label} must not exceed ${max}.`)
     .nullish();
 }
+
+export function phoneNumber(label: string) {
+  return z
+    .string(`${label} is required.`)
+    .trim()
+    .regex(
+      /^01[0125]\d{8}$/,
+      `${label} must be a valid Egyptian phone number.`,
+    );
+}

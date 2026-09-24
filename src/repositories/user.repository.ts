@@ -87,7 +87,7 @@ export const userRepository = {
       },
     });
   },
-  async getUsersByRole(role: "customer" | "collector" | "admin") {
+  async getUsersByRole(role: "customer" | "collector") {
     return getPrisma().user.findMany({
       where: { role },
       select: {
