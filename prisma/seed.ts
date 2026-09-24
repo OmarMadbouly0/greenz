@@ -119,6 +119,7 @@ async function main() {
       role: "admin",
     },
   });
+
   const collectorPassword = await hashPassword("Collector12345");
 
   await prisma.user.upsert({
@@ -134,6 +135,24 @@ async function main() {
       email: "collector@greenz.local",
       password_hash: collectorPassword,
       role: "collector",
+    },
+  });
+
+  const customerPassword = await hashPassword("Omar12345");
+
+  await prisma.user.upsert({
+    where: {
+      email: "omar@greenz.local",
+    },
+    update: {
+      role: "customer",
+      password_hash: customerPassword,
+    },
+    create: {
+      full_name: "GreenZ Customer",
+      email: "omar@greenz.local",
+      password_hash: customerPassword,
+      role: "customer",
     },
   });
 
