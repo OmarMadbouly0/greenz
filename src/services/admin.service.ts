@@ -56,4 +56,7 @@ export const adminService = {
       },
     };
   },
+  async getUsersByRole(role: "customer" | "collector") {
+    return userRepository.getUsersByRole(role);
+  },
 };
