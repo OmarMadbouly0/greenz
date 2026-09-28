@@ -115,6 +115,29 @@ export const pickupService = {
     if (!pickup) {
       throw new NotFoundError("Pickup not found.");
     }
+    if (pickup.status === "completed" || pickup.status === "cancelled") {
+      throw new ConflictError("Pickup has already been handled.");
+    }
+    if (pickup.status === "assigned") {
+      if (input.status !== "on_the_way") {
+        throw new ConflictError(
+          "Pickup must move from assigned to on_the_way.",
+        );
+      }
+    }
+
+    if (pickup.status === "on_the_way") {
+      if (input.status !== "arrived") {
+        throw new ConflictError("Pickup must move from on_the_way to arrived.");
+      }
+    }
+
+    if (pickup.status === "arrived") {
+      if (input.status !== "completed") {
+        throw new ConflictError("Pickup must move from arrived to completed.");
+      }
+    }
+
     return pickupRepository.updatePickupStatus(collectorId, pickupId, input);
   },
 
