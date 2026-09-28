@@ -1,9 +1,29 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
+import { Prisma } from "../../generated/prisma/client";
 
 export const userRepository = {
   async findById(id: number) {
     return getPrisma().user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        role: true,
+        last_login_at: true,
+      },
+    });
+  },
+  async findByIdTx(userId: number, tx: Prisma.TransactionClient) {
+    return tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        role: true,
+        last_login_at: true,
+      },
     });
   },
   async emailExists(email: string): Promise<boolean> {
@@ -14,12 +34,15 @@ export const userRepository = {
 
     return user !== null;
   },
-  async create(input: {
-    fullName: string;
-    email: string;
-    passwordHash: string;
-  }) {
-    return getPrisma().user.create({
+  async create(
+    tx: Prisma.TransactionClient,
+    input: {
+      fullName: string;
+      email: string;
+      passwordHash: string;
+    },
+  ) {
+    return tx.user.create({
       data: {
         full_name: input.fullName,
         email: input.email,
@@ -34,12 +57,15 @@ export const userRepository = {
       },
     });
   },
-  async createCollector(input: {
-    fullName: string;
-    email: string;
-    passwordHash: string;
-  }) {
-    return getPrisma().user.create({
+  async createCollector(
+    tx: Prisma.TransactionClient,
+    input: {
+      fullName: string;
+      email: string;
+      passwordHash: string;
+    },
+  ) {
+    return tx.user.create({
       data: {
         full_name: input.fullName,
         email: input.email,
@@ -75,15 +101,22 @@ export const userRepository = {
     });
   },
   async updateProfile(
+    tx: Prisma.TransactionClient,
     userId: number,
     input: {
       fullName?: string;
     },
   ) {
-    return getPrisma().user.update({
+    return tx.user.update({
       where: { id: userId },
       data: {
         full_name: input.fullName,
+      },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        role: true,
       },
     });
   },
@@ -94,7 +127,6 @@ export const userRepository = {
         id: true,
         full_name: true,
         email: true,
-        phone: true,
         role: true,
       },
     });

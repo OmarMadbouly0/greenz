@@ -16,6 +16,7 @@ import {
 import { generateToken } from "@/modules/identity/application/jwt";
 import { addressRepository } from "@/repositories/address.repository";
 import { cityRepository } from "@/repositories/city.repository";
+import { withTransaction } from "@/infrastructure/database/prisma";
 
 export const authService = {
   async registerUser(input: RegisterInput) {
@@ -31,24 +32,25 @@ export const authService = {
       throw new InvalidRequestError("Invalid city");
     }
 
-    const user = await userRepository.create({
-      fullName: input.fullName,
-      email: input.email,
-      passwordHash: passwordHash,
-    });
+    return withTransaction(async (tx) => {
+      const user = await userRepository.create(tx, {
+        fullName: input.fullName,
+        email: input.email,
+        passwordHash: passwordHash,
+      });
 
-    const address = await addressRepository.create(user.id, {
-      cityId: input.address.cityId,
-      street: input.address.street,
-      building: input.address.building,
-      apartment: input.address.apartment,
-      floor: input.address.floor,
+      const address = await addressRepository.create(tx, user.id, {
+        cityId: input.address.cityId,
+        street: input.address.street,
+        building: input.address.building,
+        apartment: input.address.apartment,
+        floor: input.address.floor,
+      });
+      return {
+        user,
+        address,
+      };
     });
-
-    return {
-      user,
-      address,
-    };
   },
   async loginUser(input: LoginInput) {
     const user = await userRepository.findByEmail(input.email);
@@ -73,21 +75,31 @@ export const authService = {
       token,
     };
   },
+
   async updateUserProfile(userId: number, input: UpdateProfileInput) {
-    const user = await userRepository.updateProfile(userId, {
-      fullName: input.fullName,
+    return withTransaction(async (tx) => {
+      if (input.fullName !== undefined) {
+        await userRepository.updateProfile(tx, userId, {
+          fullName: input.fullName,
+        });
+      }
+
+      if (input.address) {
+        await addressRepository.update(tx, userId, {
+          cityId: input.address.cityId,
+          street: input.address.street,
+          building: input.address.building,
+          apartment: input.address.apartment,
+          floor: input.address.floor,
+        });
+      }
+      const user = await userRepository.findByIdTx(userId, tx);
+      const address = await addressRepository.findByUserIdTx(userId, tx);
+
+      return {
+        user,
+        address,
+      };
     });
-
-    if (input.address) {
-      await addressRepository.update(userId, {
-        cityId: input.address.cityId,
-        street: input.address.street,
-        building: input.address.building,
-        apartment: input.address.apartment,
-        floor: input.address.floor,
-      });
-    }
-
-    return user;
   },
 };

@@ -28,18 +28,21 @@ export const loginUserSchema = z.object({
 
 export type LoginInput = z.output<typeof loginUserSchema>;
 
-export const updateProfileSchema = z.object({
-  fullName: optionalText("Full name", 50),
+export const updateProfileSchema = z
+  .object({
+    fullName: optionalText("Full name", 50),
 
-  address: z
-    .object({
-      cityId: optionalId("City"),
-      street: optionalText("Street", 50),
-      building: optionalText("Building", 50),
-      apartment: optionalText("Apartment", 50),
-      floor: optionalText("Floor", 50),
-    })
-    .optional(),
-});
+    address: z
+      .object({
+        cityId: optionalId("City"),
+        street: optionalText("Street", 50),
+        building: optionalText("Building", 50),
+        apartment: optionalText("Apartment", 50),
+        floor: optionalText("Floor", 50),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 export type UpdateProfileInput = z.output<typeof updateProfileSchema>;
