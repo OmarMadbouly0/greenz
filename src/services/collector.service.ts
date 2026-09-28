@@ -2,7 +2,6 @@ import { userRepository } from "@/repositories/user.repository";
 import { RegisterCollectorInput } from "./collector.schemas";
 import {
   ConflictError,
-  InvalidRequestError,
   NotFoundError,
 } from "@/shared/errors/application-error";
 import { hashPassword } from "@/modules/identity/application/password";

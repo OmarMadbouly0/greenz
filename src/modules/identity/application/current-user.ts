@@ -24,3 +24,30 @@ export async function getCurrentUser(): Promise<AuthenticatedUser> {
     lastLoginAt: user.last_login_at,
   };
 }
+export async function getCurrentUserOrNull(): Promise<AuthenticatedUser | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payload = verifyToken(token);
+    const user = await userRepository.findById(payload.userId);
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      role: user.role,
+      lastLoginAt: user.last_login_at,
+    };
+  } catch {
+    return null;
+  }
+}

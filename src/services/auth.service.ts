@@ -6,7 +6,6 @@ import {
 import { userRepository } from "@/repositories/user.repository";
 import {
   ConflictError,
-  InvalidRequestError,
   NotFoundError,
   UnauthorizedError,
 } from "@/shared/errors/application-error";
@@ -18,9 +17,15 @@ import { generateToken } from "@/modules/identity/application/jwt";
 import { addressRepository } from "@/repositories/address.repository";
 import { cityRepository } from "@/repositories/city.repository";
 import { withTransaction } from "@/infrastructure/database/prisma";
+import { getCurrentUserOrNull } from "@/modules/identity/application/current-user";
 
 export const authService = {
   async registerUser(input: RegisterInput) {
+    const currentUser = await getCurrentUserOrNull();
+
+    if (currentUser) {
+      throw new ConflictError("You are already logged in.");
+    }
     const emailExists = await userRepository.emailExists(input.email);
     if (emailExists) {
       throw new ConflictError("Email already exists");
@@ -54,6 +59,11 @@ export const authService = {
     });
   },
   async loginUser(input: LoginInput) {
+    const currentUser = await getCurrentUserOrNull();
+    if (currentUser) {
+      throw new ConflictError("You are already logged in.");
+    }
+
     const user = await userRepository.findByEmail(input.email);
     if (!user) {
       throw new UnauthorizedError("Invalid email or password.");
