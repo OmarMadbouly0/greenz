@@ -26,4 +26,7 @@ export const walletRepository = {
       where: { id: walletId },
     });
   },
+  async getAllWallets() {
+    return getPrisma().wallet.findMany();
+  },
 };

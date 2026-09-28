@@ -51,4 +51,7 @@ export const walletService = {
       throw new NotFoundError("Wallet not found.");
     }
   },
+  async getAllWallets() {
+    return walletRepository.getAllWallets();
+  },
 };
