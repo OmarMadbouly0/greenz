@@ -42,7 +42,7 @@ export const materialRepository = {
       data: {
         name: input.name,
         description: input.description,
-        price: input.price,
+        current_price: input.price,
         unit: input.unit,
       },
     });

@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
 
-    await requireRole(currentUser, ["customer"]);
+    requireRole(currentUser, ["customer"]);
 
     const transactions = await walletService.getWalletTransactionsByUserId(
       currentUser.id,

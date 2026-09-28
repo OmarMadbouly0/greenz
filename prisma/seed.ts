@@ -516,7 +516,7 @@ async function main() {
     string,
     {
       id: number;
-      payout: number;
+      payout: Prisma.Decimal;
       customerId: number;
     }
   > = {};
@@ -533,8 +533,9 @@ async function main() {
     });
 
     const payout = items.reduce(
-      (total, item) => total + item.quantity * Number(item.price_per_unit),
-      0,
+      (total, item) =>
+        total.plus(new Prisma.Decimal(item.quantity).mul(item.price_per_unit)),
+      new Prisma.Decimal(0),
     );
 
     const pickup = await prisma.pickup.create({

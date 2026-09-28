@@ -30,7 +30,7 @@ export async function PATCH(
   },
 ) {
   try {
-    await requireRole(await getCurrentUser(), ["admin"]);
+    requireRole(await getCurrentUser(), ["admin"]);
     const materialId = parseId((await params).materialId);
     const body = await readJsonBody(request);
     const input = parseInput(updateMaterialSchema, body);
@@ -40,13 +40,16 @@ export async function PATCH(
     return handleRouteError(error);
   }
 }
-export async function DELETE({
-  params,
-}: {
-  params: Promise<{ materialId: string }>;
-}) {
+export async function DELETE(
+  _request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{ materialId: string }>;
+  },
+) {
   try {
-    await requireRole(await getCurrentUser(), ["admin"]);
+    requireRole(await getCurrentUser(), ["admin"]);
     const materialId = parseId((await params).materialId);
     const material = await materialService.deleteMaterial(materialId);
     return apiOk(material);

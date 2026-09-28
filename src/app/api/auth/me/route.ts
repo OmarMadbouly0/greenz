@@ -20,11 +20,11 @@ export async function PATCH(request: Request) {
     const currentUser = await getCurrentUser();
     const body = await readJsonBody(request);
     const input = parseInput(updateProfileSchema, body);
-    const updatedUser = await authService.updateUserProfile(
+    const updatedProfile = await authService.updateUserProfile(
       currentUser.id,
       input,
     );
-    return apiOk({ user: updatedUser }, 200);
+    return apiOk({ updatedProfile }, 200);
   } catch (error) {
     return handleRouteError(error);
   }

@@ -9,7 +9,7 @@ import { registerCollectorSchema } from "@/services/collector.schemas";
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["admin"]);
+    requireRole(currentUser, ["admin"]);
     const collectors = await collectorService.getAllCollectors();
     return apiOk(collectors, 200);
   } catch (error) {
@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["admin"]);
+    requireRole(currentUser, ["admin"]);
 
     const body = await readJsonBody(request);
     const input = await parseInput(registerCollectorSchema, body);

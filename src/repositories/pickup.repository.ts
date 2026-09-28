@@ -92,11 +92,11 @@ export const pickupRepository = {
     userId: number,
     input: {
       note?: string | null;
-      payout: number;
+      payout: Prisma.Decimal;
       items: {
         material_id: number;
         quantity: number;
-        price_per_unit: number;
+        price_per_unit: Prisma.Decimal;
         note?: string | null;
       }[];
     },

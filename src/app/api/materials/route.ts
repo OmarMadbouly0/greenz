@@ -16,7 +16,7 @@ export async function GET() {
 }
 export async function POST(request: Request) {
   try {
-    await requireRole(await getCurrentUser(), ["admin"]);
+    requireRole(await getCurrentUser(), ["admin"]);
     const body = await readJsonBody(request);
     const input = parseInput(createMaterialSchema, body);
     const material = await materialService.createMaterial(input);

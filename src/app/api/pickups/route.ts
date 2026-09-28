@@ -10,7 +10,7 @@ import { parseInput } from "@/shared/validation/parse-input";
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer", "collector"]);
+    requireRole(currentUser, ["customer", "collector"]);
 
     const pickups = await pickupService.getPickups(
       currentUser.id,
@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer"]);
+    requireRole(currentUser, ["customer"]);
 
     const body = await readJsonBody(request);
     const input = parseInput(createPickupSchema, body);

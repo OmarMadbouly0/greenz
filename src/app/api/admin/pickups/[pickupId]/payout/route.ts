@@ -15,7 +15,7 @@ export async function PATCH(
   try {
     const currentUser = await getCurrentUser();
 
-    await requireRole(currentUser, ["admin"]);
+    requireRole(currentUser, ["admin"]);
 
     const pickupId = parseId((await params).pickupId);
 

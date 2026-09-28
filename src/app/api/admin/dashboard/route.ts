@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
 
-    await requireRole(currentUser, ["admin"]);
+    requireRole(currentUser, ["admin"]);
 
     const dashboard = await adminService.getDashboard();
 

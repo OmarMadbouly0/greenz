@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const body = await readJsonBody(request);
     const input = parseInput(createWalletSchema, body);
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer"]);
+    requireRole(currentUser, ["customer"]);
     const wallet = await walletService.createWallet(currentUser.id, input);
 
     return apiOk(wallet, 201);
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer"]);
+    requireRole(currentUser, ["customer"]);
     const wallet = await walletService.getWalletByUserId(currentUser.id);
     return apiOk(wallet, 200);
   } catch (error) {

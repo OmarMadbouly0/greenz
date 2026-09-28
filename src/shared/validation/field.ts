@@ -76,7 +76,7 @@ export function optionalNumber(label: string, min: number, max: number) {
         : `${label} must be at least ${min}.`,
     )
     .max(max, `${label} must not exceed ${max}.`)
-    .nullish();
+    .optional();
 }
 
 export function phoneNumber(label: string) {

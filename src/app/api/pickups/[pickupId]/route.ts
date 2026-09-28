@@ -15,7 +15,7 @@ export async function GET(
   try {
     const currentUser = await getCurrentUser();
 
-    await requireRole(currentUser, ["customer", "collector", "admin"]);
+    requireRole(currentUser, ["customer", "collector", "admin"]);
 
     const pickupId = parseId((await params).pickupId);
 
@@ -29,14 +29,17 @@ export async function GET(
     return handleRouteError(error);
   }
 }
-export async function DELETE({
-  params,
-}: {
-  params: Promise<{ pickupId: string }>;
-}) {
+export async function DELETE(
+  _request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{ pickupId: string }>;
+  },
+) {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["customer"]);
+    requireRole(currentUser, ["customer"]);
     const pickupId = parseId((await params).pickupId);
     const pickup = await pickupService.cancelPickup(currentUser.id, pickupId);
     return apiOk(pickup);
@@ -52,7 +55,7 @@ export async function PATCH(
   try {
     const currentCollector = await getCurrentUser();
 
-    await requireRole(currentCollector, ["collector"]);
+    requireRole(currentCollector, ["collector"]);
 
     const pickupId = parseId((await params).pickupId);
 

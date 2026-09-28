@@ -1,3 +1,4 @@
+import { Decimal } from "./../../generated/prisma/internal/prismaNamespace";
 import { materialRepository } from "@/repositories/material.repository";
 import {
   CreatePickupInput,
@@ -12,6 +13,7 @@ import {
   NotFoundError,
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
+import { Prisma } from "../../generated/prisma/client";
 
 type UserRole = "customer" | "collector" | "admin";
 
@@ -80,7 +82,7 @@ export const pickupService = {
       return {
         material_id: item.materialId,
         quantity: item.quantity,
-        price_per_unit: Number(
+        price_per_unit: Prisma.Decimal(
           materials.find((material) => material.id === item.materialId)!
             .current_price,
         ),
@@ -90,8 +92,8 @@ export const pickupService = {
 
     const payout = items.reduce(
       (total, item) =>
-        total + Number(item.quantity) * Number(item.price_per_unit),
-      0,
+        total.plus(new Prisma.Decimal(item.quantity).mul(item.price_per_unit)),
+      new Prisma.Decimal(0),
     );
 
     return pickupRepository.createPickup(userId, {

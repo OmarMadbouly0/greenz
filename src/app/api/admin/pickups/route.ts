@@ -6,7 +6,7 @@ import { pickupService } from "@/services/pickup.service";
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    await requireRole(currentUser, ["admin"]);
+    requireRole(currentUser, ["admin"]);
     const pickups = await pickupService.getPickups(currentUser.id, "admin");
     return apiOk(pickups, 200);
   } catch (error) {
