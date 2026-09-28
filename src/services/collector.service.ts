@@ -3,6 +3,7 @@ import { RegisterCollectorInput } from "./collector.schemas";
 import {
   ConflictError,
   InvalidRequestError,
+  NotFoundError,
 } from "@/shared/errors/application-error";
 import { hashPassword } from "@/modules/identity/application/password";
 import { cityRepository } from "@/repositories/city.repository";
@@ -23,7 +24,7 @@ export const collectorService = {
     const city = await cityRepository.findById(input.address.cityId);
 
     if (!city) {
-      throw new InvalidRequestError("Invalid city");
+      throw new NotFoundError("City not found.");
     }
     return withTransaction(async (tx) => {
       const user = await userRepository.createCollector(tx, {

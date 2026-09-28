@@ -7,6 +7,7 @@ import { userRepository } from "@/repositories/user.repository";
 import {
   ConflictError,
   InvalidRequestError,
+  NotFoundError,
   UnauthorizedError,
 } from "@/shared/errors/application-error";
 import {
@@ -29,7 +30,7 @@ export const authService = {
     const city = await cityRepository.findById(input.address.cityId);
 
     if (!city) {
-      throw new InvalidRequestError("Invalid city");
+      throw new NotFoundError("City not found.");
     }
 
     return withTransaction(async (tx) => {

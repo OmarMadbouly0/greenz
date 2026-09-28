@@ -1,4 +1,3 @@
-import { Decimal } from "./../../generated/prisma/internal/prismaNamespace";
 import { materialRepository } from "@/repositories/material.repository";
 import {
   CreatePickupInput,
@@ -9,8 +8,9 @@ import { pickupRepository } from "@/repositories/pickup.repository";
 import { userRepository } from "@/repositories/user.repository";
 
 import {
-  InvalidRequestError,
+  ConflictError,
   NotFoundError,
+  UnauthorizedError,
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
 import { Prisma } from "../../generated/prisma/client";
@@ -28,7 +28,7 @@ export const pickupService = {
     if (role === "admin") {
       return pickupRepository.getAllPickups();
     }
-    throw new InvalidRequestError("Invalid user role.");
+    throw new UnauthorizedError("Invalid user role.");
   },
 
   async getPickupById(userId: number, role: UserRole, pickupId: number) {
@@ -49,7 +49,7 @@ export const pickupService = {
       return pickup;
     }
 
-    throw new InvalidRequestError("Invalid user role.");
+    throw new UnauthorizedError("Invalid user role.");
   },
 
   async cancelPickup(userId: number, pickupId: number) {
@@ -58,7 +58,7 @@ export const pickupService = {
       throw new NotFoundError("Pickup not found.");
     }
     if (pickup.status !== "pending" && pickup.status !== "assigned") {
-      throw new InvalidRequestError(
+      throw new ConflictError(
         "Only pending or assigned pickups can be canceled.",
       );
     }
@@ -73,7 +73,7 @@ export const pickupService = {
     const missingIds = materialIds.filter((id) => !foundIds.includes(id));
 
     if (missingIds.length > 0) {
-      throw new InvalidRequestError("Some materials are not available.", {
+      throw new ConflictError("Some materials are not available.", {
         materialIds: missingIds,
       });
     }
@@ -139,17 +139,17 @@ export const pickupService = {
     }
 
     if (pickup.status !== "completed") {
-      throw new InvalidRequestError(
+      throw new ConflictError(
         "Payout can only be updated for completed pickups.",
       );
     }
 
     if (pickup.payout_status !== "pending") {
-      throw new InvalidRequestError("Payout has already been done.");
+      throw new ConflictError("Payout has already been done.");
     }
 
     if (!pickup.payout) {
-      throw new InvalidRequestError("Pickup has no payout amount.");
+      throw new ConflictError("Pickup has no payout amount.");
     }
 
     if (input.status === "paid") {

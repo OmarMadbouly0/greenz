@@ -1,6 +1,6 @@
 import { walletRepository } from "@/repositories/wallet.repository";
 import {
-  InvalidRequestError,
+  ConflictError,
   NotFoundError,
 } from "@/shared/errors/application-error";
 import { CreateWalletInput } from "./wallet.schemas";
@@ -9,7 +9,7 @@ export const walletService = {
   async createWallet(userId: number, input: CreateWalletInput) {
     const existingWallet = await walletRepository.getWalletByUserId(userId);
     if (existingWallet) {
-      throw new InvalidRequestError("Wallet already exists for this user.");
+      throw new ConflictError("Wallet already exists for this user.");
     }
     const wallet = await walletRepository.createWallet(userId, input.phone);
     return wallet;
