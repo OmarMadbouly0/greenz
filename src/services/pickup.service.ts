@@ -159,6 +159,18 @@ export const pickupService = {
     }
     return pickupRepository.assignPickupToCollector(collectorId, pickupId);
   },
+
+  async unassignPickupFromCollector(pickupId: number) {
+    const pickup = await pickupRepository.getPickupById(pickupId);
+    if (!pickup) {
+      throw new NotFoundError("Pickup not found.");
+    }
+    if (pickup.status !== "assigned" || pickup.collector_id === null) {
+      throw new ConflictError("Pickup is not assigned to a collector.");
+    }
+    return pickupRepository.unassignPickupFromCollector(pickupId);
+  },
+
   //admin
   async updatePayoutStatus(pickupId: number, input: UpdatePayoutStatusInput) {
     const pickup = await pickupRepository.getPickupById(pickupId);

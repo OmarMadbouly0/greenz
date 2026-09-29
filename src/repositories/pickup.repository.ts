@@ -169,6 +169,8 @@ export const pickupRepository = {
       },
       select: {
         id: true,
+        collector_id: true,
+        customer_id: true,
         status: true,
         note: true,
         payout: true,
@@ -222,6 +224,17 @@ export const pickupRepository = {
       data: {
         collector_id: collectorId,
         status: "assigned",
+      },
+    });
+  },
+  async unassignPickupFromCollector(pickupId: number) {
+    return getPrisma().pickup.update({
+      where: {
+        id: pickupId,
+      },
+      data: {
+        collector_id: null,
+        status: "pending",
       },
     });
   },
