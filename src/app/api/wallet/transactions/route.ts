@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/modules/identity/application/current-user";
 import { requireRole } from "@/modules/identity/application/guards";
 import { apiOk } from "../../_shared/responses";
 import { handleRouteError } from "../../_shared/route-errors";
-import { walletService } from "@/services/wallet.service";
+import { transactionService } from "@/services/transaction.service";
 
 export async function GET() {
   try {
@@ -10,7 +10,7 @@ export async function GET() {
 
     requireRole(currentUser, ["customer"]);
 
-    const transactions = await walletService.getWalletTransactionsByUserId(
+    const transactions = await transactionService.getWalletTransactionsByUserId(
       currentUser.id,
     );
 

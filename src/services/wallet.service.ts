@@ -23,18 +23,6 @@ export const walletService = {
     return wallet;
   },
 
-  async getWalletTransactions(walletId: number) {
-    await walletService.exists(walletId);
-    const transactions = await walletRepository.getWalletTransactions(walletId);
-    return transactions;
-  },
-  async getWalletTransactionsByUserId(userId: number) {
-    const wallet = await walletService.getWalletByUserId(userId);
-    const transactions = await walletRepository.getWalletTransactions(
-      wallet.id,
-    );
-    return transactions;
-  },
 
   //admin
   async getWalletById(walletId: number) {

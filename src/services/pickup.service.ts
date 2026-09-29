@@ -32,24 +32,23 @@ export const pickupService = {
   },
 
   async getPickupById(userId: number, role: UserRole, pickupId: number) {
+    let pickup;
+
     if (role === "customer") {
-      const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
-      return pickup;
+      pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
+    } else if (role === "collector") {
+      pickup = await pickupRepository.getPickupByCollectorId(userId, pickupId);
+    } else if (role === "admin") {
+      pickup = await pickupRepository.getPickupById(pickupId);
+    } else {
+      throw new UnauthorizedError("Invalid user role.");
     }
 
-    if (role === "collector") {
-      const pickup = await pickupRepository.getPickupByCollectorId(
-        userId,
-        pickupId,
-      );
-      return pickup;
-    }
-    if (role === "admin") {
-      const pickup = await pickupRepository.getPickupById(pickupId);
-      return pickup;
+    if (!pickup) {
+      throw new NotFoundError("Pickup not found.");
     }
 
-    throw new UnauthorizedError("Invalid user role.");
+    return pickup;
   },
 
   async cancelPickup(userId: number, pickupId: number) {
@@ -66,6 +65,13 @@ export const pickupService = {
   },
 
   async createPickup(userId: number, input: CreatePickupInput) {
+    const wallet = await walletRepository.getWalletByUserId(userId);
+
+    if (!wallet) {
+      throw new ConflictError(
+        "You must register a wallet before making a pickup.",
+      );
+    }
     const materialIds = input.items.map((item) => item.materialId);
     const materials = await materialRepository.getMaterialsByIds(materialIds);
 
