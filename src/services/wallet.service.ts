@@ -4,6 +4,8 @@ import {
   NotFoundError,
 } from "@/shared/errors/application-error";
 import { CreateWalletInput } from "./wallet.schemas";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
+import { pageResult } from "@/shared/pagination";
 
 export const walletService = {
   async createWallet(userId: number, input: CreateWalletInput) {
@@ -23,7 +25,6 @@ export const walletService = {
     return wallet;
   },
 
-
   //admin
   async getWalletById(walletId: number) {
     const wallet = await walletRepository.getWalletById(walletId);
@@ -39,7 +40,9 @@ export const walletService = {
       throw new NotFoundError("Wallet not found.");
     }
   },
-  async getAllWallets() {
-    return walletRepository.getAllWallets();
+  async getAllWallets(pagination: PaginationInput) {
+    const { items, total } = await walletRepository.getAllWallets(pagination);
+
+    return pageResult(items, total, pagination.page, pagination.pageSize);
   },
 };
