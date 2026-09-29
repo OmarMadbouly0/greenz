@@ -1,7 +1,12 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
-import { UpdatePickupStatusInput } from "@/services/pickup.schemas";
+import {
+  PickupListQuery,
+  UpdatePickupStatusInput,
+} from "@/services/pickup.schemas";
 import { withTransaction } from "@/infrastructure/database/prisma";
 import { Prisma } from "@/../generated/prisma/client";
+import { pageArgs } from "@/shared/pagination";
+
 export const pickupRepository = {
   async getPickupsByCustomerId(userId: number) {
     return getPrisma().pickup.findMany({
@@ -13,57 +18,79 @@ export const pickupRepository = {
       },
     });
   },
-  async getAllPickups() {
-    return getPrisma().pickup.findMany({
-      orderBy: {
-        created_at: "desc",
-      },
-      select: {
-        id: true,
-        status: true,
-        note: true,
-        payout: true,
-        payout_status: true,
-        requested_at: true,
-        completed_at: true,
-        cancelled_at: true,
-        created_at: true,
-        updated_at: true,
+  async getAllPickups({ page, pageSize, status }: PickupListQuery) {
+    const { skip, take } = pageArgs(page, pageSize);
 
-        customer: {
-          select: {
-            id: true,
-            full_name: true,
-            email: true,
-          },
+    const where = {
+      ...(status !== undefined && {
+        status,
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      getPrisma().pickup.findMany({
+        where,
+        skip,
+        take,
+        orderBy: {
+          created_at: "desc",
         },
+        select: {
+          id: true,
+          status: true,
+          note: true,
+          payout: true,
+          payout_status: true,
+          requested_at: true,
+          completed_at: true,
+          cancelled_at: true,
+          created_at: true,
+          updated_at: true,
 
-        collector: {
-          select: {
-            id: true,
-            full_name: true,
-            email: true,
+          customer: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+            },
           },
-        },
 
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-            price_per_unit: true,
-            note: true,
+          collector: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+            },
+          },
 
-            material: {
-              select: {
-                id: true,
-                name: true,
-                unit: true,
+          items: {
+            select: {
+              id: true,
+              quantity: true,
+              price_per_unit: true,
+              note: true,
+
+              material: {
+                select: {
+                  id: true,
+                  name: true,
+                  unit: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+
+      getPrisma().pickup.count({
+        where,
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   },
 
   async getPickupsByCollectorId(userId: number) {

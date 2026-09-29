@@ -4,6 +4,7 @@ import {
   requiredId,
   requiredNumber,
 } from "@/shared/validation/field";
+import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
 
 export const createPickupSchema = z.object({
   note: optionalText("Note", 500),
@@ -40,3 +41,18 @@ export const updatePayoutStatusSchema = z.object({
 });
 
 export type UpdatePayoutStatusInput = z.output<typeof updatePayoutStatusSchema>;
+
+export const pickupListQuerySchema = paginationQuerySchema.extend({
+  status: z
+    .enum([
+      "pending",
+      "assigned",
+      "on_the_way",
+      "arrived",
+      "completed",
+      "cancelled",
+    ])
+    .optional(),
+});
+
+export type PickupListQuery = z.output<typeof pickupListQuerySchema>;

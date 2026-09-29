@@ -14,6 +14,8 @@ import {
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
 import { Prisma } from "../../generated/prisma/client";
+import { PickupListQuery } from "./pickup.schemas";
+import { pageResult } from "@/shared/pagination";
 
 type UserRole = "customer" | "collector" | "admin";
 
@@ -25,10 +27,12 @@ export const pickupService = {
     if (role === "collector") {
       return pickupRepository.getPickupsByCollectorId(userId);
     }
-    if (role === "admin") {
-      return pickupRepository.getAllPickups();
-    }
     throw new UnauthorizedError("Invalid user role.");
+  },
+  async getAllPickups(query: PickupListQuery) {
+    const { items, total } = await pickupRepository.getAllPickups(query);
+
+    return pageResult(items, total, query.page, query.pageSize);
   },
 
   async getPickupById(userId: number, role: UserRole, pickupId: number) {
