@@ -3,7 +3,6 @@ import {
   PickupListQuery,
   UpdatePickupStatusInput,
 } from "@/services/pickup.schemas";
-import { withTransaction } from "@/infrastructure/database/prisma";
 import { Prisma } from "@/../generated/prisma/client";
 import { pageArgs } from "@/shared/pagination";
 
@@ -243,6 +242,68 @@ export const pickupRepository = {
       },
     });
   },
+  async getPickupByIdTx(tx: Prisma.TransactionClient, pickupId: number) {
+    return tx.pickup.findUnique({
+      where: {
+        id: pickupId,
+      },
+      select: {
+        id: true,
+        collector_id: true,
+        customer_id: true,
+        status: true,
+        note: true,
+        payout: true,
+        payout_status: true,
+        requested_at: true,
+        completed_at: true,
+        cancelled_at: true,
+        created_at: true,
+        updated_at: true,
+
+        customer: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        collector: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price_per_unit: true,
+            note: true,
+
+            material: {
+              select: {
+                id: true,
+                name: true,
+                unit: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+  async lockPickup(tx: Prisma.TransactionClient, pickupId: number) {
+    await tx.$queryRaw`
+    SELECT id
+    FROM pickups
+    WHERE id = ${pickupId}
+    FOR UPDATE
+  `;
+  },
   async assignPickupToCollector(collectorId: number, pickupId: number) {
     return getPrisma().pickup.update({
       where: {
@@ -293,39 +354,42 @@ export const pickupRepository = {
       },
     });
   },
-  async payPickup(pickupId: number, walletId: number, payout: Prisma.Decimal) {
-    return withTransaction(async (tx) => {
-      await tx.wallet.update({
-        where: {
-          id: walletId,
+  async payPickup(
+    tx: Prisma.TransactionClient,
+    pickupId: number,
+    walletId: number,
+    payout: Prisma.Decimal,
+  ) {
+    await tx.wallet.update({
+      where: {
+        id: walletId,
+      },
+      data: {
+        balance: {
+          increment: payout,
         },
-        data: {
-          balance: {
-            increment: payout,
-          },
-        },
-      });
+      },
+    });
 
-      await tx.walletTransaction.create({
-        data: {
-          wallet_id: walletId,
-          pickup_id: pickupId,
-          amount: payout,
-        },
-      });
+    await tx.walletTransaction.create({
+      data: {
+        wallet_id: walletId,
+        pickup_id: pickupId,
+        amount: payout,
+      },
+    });
 
-      return tx.pickup.update({
-        where: {
-          id: pickupId,
-        },
-        data: {
-          payout_status: "paid",
-        },
-      });
+    return tx.pickup.update({
+      where: {
+        id: pickupId,
+      },
+      data: {
+        payout_status: "paid",
+      },
     });
   },
-  async cancelPayout(pickupId: number) {
-    return getPrisma().pickup.update({
+  async cancelPayout(tx: Prisma.TransactionClient, pickupId: number) {
+    return tx.pickup.update({
       where: {
         id: pickupId,
       },

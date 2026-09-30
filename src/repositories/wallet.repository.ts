@@ -1,6 +1,7 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
 import { pageArgs } from "@/shared/pagination";
 import { PaginationInput } from "@/shared/validation/pagination.schema";
+import { Prisma } from "../../generated/prisma/client";
 export const walletRepository = {
   async createWallet(userId: number, phone: string) {
     return getPrisma().wallet.create({
@@ -14,6 +15,13 @@ export const walletRepository = {
   async getWalletByUserId(userId: number) {
     return getPrisma().wallet.findUnique({
       where: { user_id: userId },
+    });
+  },
+  async getWalletByUserIdTx(tx: Prisma.TransactionClient, userId: number) {
+    return tx.wallet.findUnique({
+      where: {
+        user_id: userId,
+      },
     });
   },
 

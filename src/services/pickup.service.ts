@@ -13,9 +13,10 @@ import {
   UnauthorizedError,
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
-import { Prisma } from "../../generated/prisma/client";
+import { Prisma } from "@/../generated/prisma/client";
 import { PickupListQuery } from "./pickup.schemas";
 import { pageResult } from "@/shared/pagination";
+import { withTransaction } from "@/infrastructure/database/prisma";
 
 type UserRole = "customer" | "collector" | "admin";
 
@@ -177,39 +178,48 @@ export const pickupService = {
 
   //admin
   async updatePayoutStatus(pickupId: number, input: UpdatePayoutStatusInput) {
-    const pickup = await pickupRepository.getPickupById(pickupId);
+    return withTransaction(async (tx) => {
+      await pickupRepository.lockPickup(tx, pickupId);
 
-    if (!pickup) {
-      throw new NotFoundError("Pickup not found.");
-    }
-
-    if (pickup.status !== "completed") {
-      throw new ConflictError(
-        "Payout can only be updated for completed pickups.",
-      );
-    }
-
-    if (pickup.payout_status !== "pending") {
-      throw new ConflictError("Payout has already been done.");
-    }
-
-    if (!pickup.payout) {
-      throw new ConflictError("Pickup has no payout amount.");
-    }
-
-    if (input.status === "paid") {
-      const wallet = await walletRepository.getWalletByUserId(
-        pickup.customer.id,
-      );
-      if (!wallet) {
-        throw new NotFoundError("Customer wallet not found.");
+      const pickup = await pickupRepository.getPickupByIdTx(tx, pickupId);
+      if (!pickup) {
+        throw new NotFoundError("Pickup not found.");
       }
 
-      return pickupRepository.payPickup(pickupId, wallet.id, pickup.payout);
-    }
+      if (pickup.status !== "completed") {
+        throw new ConflictError(
+          "Payout can only be updated for completed pickups.",
+        );
+      }
 
-    if (input.status === "cancelled") {
-      return pickupRepository.cancelPayout(pickupId);
-    }
+      if (pickup.payout_status !== "pending") {
+        throw new ConflictError("Payout has already been done.");
+      }
+
+      if (!pickup.payout) {
+        throw new ConflictError("Pickup has no payout amount.");
+      }
+
+      if (input.status === "paid") {
+        const wallet = await walletRepository.getWalletByUserIdTx(
+          tx,
+          pickup.customer.id,
+        );
+        if (!wallet) {
+          throw new NotFoundError("Customer wallet not found.");
+        }
+
+        return pickupRepository.payPickup(
+          tx,
+          pickupId,
+          wallet.id,
+          pickup.payout,
+        );
+      }
+
+      if (input.status === "cancelled") {
+        return pickupRepository.cancelPayout(tx, pickupId);
+      }
+    });
   },
 };
