@@ -20,11 +20,7 @@ export const pickupRepository = {
   async getAllPickups({ page, pageSize, status }: PickupListQuery) {
     const { skip, take } = pageArgs(page, pageSize);
 
-    const where = {
-      ...(status !== undefined && {
-        status,
-      }),
-    };
+    const where = status !== undefined ? { status: status } : {};
 
     const [items, total] = await Promise.all([
       getPrisma().pickup.findMany({
@@ -375,6 +371,7 @@ export const pickupRepository = {
       data: {
         wallet_id: walletId,
         pickup_id: pickupId,
+        type: "payout",
         amount: payout,
       },
     });

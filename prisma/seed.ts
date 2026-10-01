@@ -28,6 +28,7 @@ async function main() {
   // -------------------------
 
   await prisma.walletTransaction.deleteMany();
+  await prisma.withdrawalRequest.deleteMany();
   await prisma.pickupItem.deleteMany();
   await prisma.pickup.deleteMany();
   await prisma.wallet.deleteMany();
@@ -600,6 +601,7 @@ async function main() {
       data: {
         wallet_id: wallet.id,
         pickup_id: pickup.id,
+        type: "payout",
         amount: pickup.payout,
       },
     });
