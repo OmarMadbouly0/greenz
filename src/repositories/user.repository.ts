@@ -92,8 +92,8 @@ export const userRepository = {
       data: { last_login_at: new Date() },
     });
   },
-  async getCollectorById(userId: number) {
-    return getPrisma().user.findFirst({
+  async getCollectorById(tx: Prisma.TransactionClient, userId: number) {
+    return tx.user.findFirst({
       where: {
         id: userId,
         role: "collector",

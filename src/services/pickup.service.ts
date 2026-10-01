@@ -57,16 +57,20 @@ export const pickupService = {
   },
 
   async cancelPickup(userId: number, pickupId: number) {
-    const pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
-    if (!pickup) {
-      throw new NotFoundError("Pickup not found.");
-    }
-    if (pickup.status !== "pending" && pickup.status !== "assigned") {
-      throw new ConflictError(
-        "Only pending or assigned pickups can be canceled.",
-      );
-    }
-    return pickupRepository.cancelPickup(userId, pickupId);
+    return withTransaction(async (tx) => {
+      await pickupRepository.lockPickup(tx, pickupId);
+
+      const pickup = await pickupRepository.getPickupByIdTx(tx, pickupId);
+      if (!pickup || pickup.customer_id !== userId) {
+        throw new NotFoundError("Pickup not found.");
+      }
+      if (pickup.status !== "pending" && pickup.status !== "assigned") {
+        throw new ConflictError(
+          "Only pending or assigned pickups can be canceled.",
+        );
+      }
+      return pickupRepository.cancelPickup(tx, userId, pickupId);
+    });
   },
 
   async createPickup(userId: number, input: CreatePickupInput) {
@@ -119,61 +123,67 @@ export const pickupService = {
     pickupId: number,
     input: UpdatePickupStatusInput,
   ) {
-    const pickup = await pickupRepository.getPickupByCollectorId(
-      collectorId,
-      pickupId,
-    );
-    if (!pickup) {
-      throw new NotFoundError("Pickup not found.");
-    }
-    if (pickup.status === "completed" || pickup.status === "cancelled") {
-      throw new ConflictError("Pickup has already been handled.");
-    }
-    if (pickup.status === "assigned") {
-      if (input.status !== "on_the_way") {
+    return withTransaction(async (tx) => {
+      await pickupRepository.lockPickup(tx, pickupId);
+
+      const pickup = await pickupRepository.getPickupByIdTx(tx, pickupId);
+      if (!pickup || pickup.collector_id !== collectorId) {
+        throw new NotFoundError("Pickup not found.");
+      }
+      if (pickup.status === "completed" || pickup.status === "cancelled") {
+        throw new ConflictError("Pickup has already been handled.");
+      }
+      if (pickup.status === "pending") {
+        throw new ConflictError("Pickup must be assigned before updating progress.");
+      }
+      if (pickup.status === "assigned" && input.status !== "on_the_way") {
         throw new ConflictError(
           "Pickup must move from assigned to on_the_way.",
         );
       }
-    }
-
-    if (pickup.status === "on_the_way") {
-      if (input.status !== "arrived") {
+      if (pickup.status === "on_the_way" && input.status !== "arrived") {
         throw new ConflictError("Pickup must move from on_the_way to arrived.");
       }
-    }
-
-    if (pickup.status === "arrived") {
-      if (input.status !== "completed") {
+      if (pickup.status === "arrived" && input.status !== "completed") {
         throw new ConflictError("Pickup must move from arrived to completed.");
       }
-    }
 
-    return pickupRepository.updatePickupStatus(collectorId, pickupId, input);
+      return pickupRepository.updatePickupStatus(tx, collectorId, pickupId, input);
+    });
   },
 
   async assignPickupToCollector(collectorId: number, pickupId: number) {
-    const pickup = await pickupRepository.getPickupById(pickupId);
-    if (!pickup) {
-      throw new NotFoundError("Pickup not found.");
-    }
-    const collector = await userRepository.getCollectorById(collectorId);
+    return withTransaction(async (tx) => {
+      await pickupRepository.lockPickup(tx, pickupId);
 
-    if (!collector) {
-      throw new NotFoundError("Collector not found.");
-    }
-    return pickupRepository.assignPickupToCollector(collectorId, pickupId);
+      const pickup = await pickupRepository.getPickupByIdTx(tx, pickupId);
+      if (!pickup) {
+        throw new NotFoundError("Pickup not found.");
+      }
+      if (pickup.status !== "pending" || pickup.collector_id !== null) {
+        throw new ConflictError("Only pending, unassigned pickups can be assigned.");
+      }
+      const collector = await userRepository.getCollectorById(tx, collectorId);
+      if (!collector) {
+        throw new NotFoundError("Collector not found.");
+      }
+      return pickupRepository.assignPickupToCollector(tx, collectorId, pickupId);
+    });
   },
 
   async unassignPickupFromCollector(pickupId: number) {
-    const pickup = await pickupRepository.getPickupById(pickupId);
-    if (!pickup) {
-      throw new NotFoundError("Pickup not found.");
-    }
-    if (pickup.status !== "assigned" || pickup.collector_id === null) {
-      throw new ConflictError("Pickup is not assigned to a collector.");
-    }
-    return pickupRepository.unassignPickupFromCollector(pickupId);
+    return withTransaction(async (tx) => {
+      await pickupRepository.lockPickup(tx, pickupId);
+
+      const pickup = await pickupRepository.getPickupByIdTx(tx, pickupId);
+      if (!pickup) {
+        throw new NotFoundError("Pickup not found.");
+      }
+      if (pickup.status !== "assigned" || pickup.collector_id === null) {
+        throw new ConflictError("Pickup is not assigned to a collector.");
+      }
+      return pickupRepository.unassignPickupFromCollector(tx, pickupId);
+    });
   },
 
   //admin

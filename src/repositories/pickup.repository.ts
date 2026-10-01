@@ -139,8 +139,8 @@ export const pickupRepository = {
       },
     });
   },
-  async cancelPickup(userId: number, pickupId: number) {
-    return getPrisma().pickup.update({
+  async cancelPickup(tx: Prisma.TransactionClient, userId: number, pickupId: number) {
+    return tx.pickup.update({
       where: {
         id: pickupId,
         customer_id: userId,
@@ -168,11 +168,12 @@ export const pickupRepository = {
   },
 
   async updatePickupStatus(
+    tx: Prisma.TransactionClient,
     collectorId: number,
     pickupId: number,
     { status }: UpdatePickupStatusInput,
   ) {
-    return getPrisma().pickup.update({
+    return tx.pickup.update({
       where: {
         id: pickupId,
         collector_id: collectorId,
@@ -300,8 +301,12 @@ export const pickupRepository = {
     FOR UPDATE
   `;
   },
-  async assignPickupToCollector(collectorId: number, pickupId: number) {
-    return getPrisma().pickup.update({
+  async assignPickupToCollector(
+    tx: Prisma.TransactionClient,
+    collectorId: number,
+    pickupId: number,
+  ) {
+    return tx.pickup.update({
       where: {
         id: pickupId,
       },
@@ -311,8 +316,8 @@ export const pickupRepository = {
       },
     });
   },
-  async unassignPickupFromCollector(pickupId: number) {
-    return getPrisma().pickup.update({
+  async unassignPickupFromCollector(tx: Prisma.TransactionClient, pickupId: number) {
+    return tx.pickup.update({
       where: {
         id: pickupId,
       },
