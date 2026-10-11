@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       input,
     );
 
-    return apiOk(withdrawal);
+    return apiOk(withdrawal, 201);
   } catch (error) {
     return handleRouteError(error);
   }

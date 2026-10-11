@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     requireRole(currentUser, ["admin"]);
 
     const body = await readJsonBody(request);
-    const input = await parseInput(registerCollectorSchema, body);
+    const input = parseInput(registerCollectorSchema, body);
     const collector = await collectorService.registerCollector(input);
     return apiOk(collector, 201);
   } catch (error) {

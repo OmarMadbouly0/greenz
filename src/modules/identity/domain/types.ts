@@ -5,7 +5,6 @@ export type AuthenticatedUser = {
   email: string;
   fullName: string;
   role: UserRole;
-  lastLoginAt: Date | null;
 };
 
 export const materialUnit = ["kg", "g", "l", "ml", "piece"] as const;

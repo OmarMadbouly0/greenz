@@ -154,11 +154,10 @@ model Pickup {
   created_at DateTime @default(now()) @db.Timestamptz(3)
   updated_at DateTime @updatedAt @db.Timestamptz(3)
 
-  customer            User               @relation("CustomerPickups", fields: [customer_id], references: [id], onDelete: Restrict)
-  collector           User?              @relation("CollectorPickups", fields: [collector_id], references: [id], onDelete: SetNull)
-  items               PickupItem[]
-  walletTransaction   WalletTransaction?
-  walletTransactionId Int?
+  customer          User               @relation("CustomerPickups", fields: [customer_id], references: [id], onDelete: Restrict)
+  collector         User?              @relation("CollectorPickups", fields: [collector_id], references: [id], onDelete: SetNull)
+  items             PickupItem[]
+  walletTransaction WalletTransaction?
 
   @@map("pickups")
 }

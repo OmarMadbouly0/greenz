@@ -10,7 +10,6 @@ export const userRepository = {
         full_name: true,
         email: true,
         role: true,
-        last_login_at: true,
       },
     });
   },
@@ -22,7 +21,6 @@ export const userRepository = {
         full_name: true,
         email: true,
         role: true,
-        last_login_at: true,
       },
     });
   },
