@@ -265,31 +265,6 @@ export const pickupRepository = {
             email: true,
           },
         },
-
-        collector: {
-          select: {
-            id: true,
-            full_name: true,
-            email: true,
-          },
-        },
-
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-            price_per_unit: true,
-            note: true,
-
-            material: {
-              select: {
-                id: true,
-                name: true,
-                unit: true,
-              },
-            },
-          },
-        },
       },
     });
   },
