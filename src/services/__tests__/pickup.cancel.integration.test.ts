@@ -39,6 +39,17 @@ describe("PickupService.cancelPickup", () => {
     await prisma.$connect();
   }, 180_000);
 
+  beforeEach(async () => {
+    await prisma.walletTransaction.deleteMany();
+    await prisma.withdrawalRequest.deleteMany();
+    await prisma.pickupItem.deleteMany();
+    await prisma.pickup.deleteMany();
+    await prisma.wallet.deleteMany();
+    await prisma.address.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.material.deleteMany();
+  });
+
   afterAll(async () => {
     try {
       if (prisma) {
