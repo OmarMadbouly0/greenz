@@ -26,6 +26,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.19.2",
