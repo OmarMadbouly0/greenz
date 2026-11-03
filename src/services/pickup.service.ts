@@ -93,6 +93,10 @@ export const pickupService = {
       });
     }
 
+    if (materials.some((material) => material.current_price.lt(1))) {
+      throw new ConflictError("Material prices must be at least 1.");
+    }
+
     const items = input.items.map((item) => {
       return {
         material_id: item.materialId,
@@ -105,11 +109,19 @@ export const pickupService = {
       };
     });
 
-    const payout = items.reduce(
-      (total, item) =>
-        total.plus(new Prisma.Decimal(item.quantity).mul(item.price_per_unit)),
-      new Prisma.Decimal(0),
-    );
+    const payout = items
+      .reduce(
+        (total, item) =>
+          total.plus(new Prisma.Decimal(item.quantity).mul(item.price_per_unit)),
+        new Prisma.Decimal(0),
+      )
+      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+
+    if (payout.gt("99999999.99")) {
+      throw new ConflictError(
+        "Pickup payout exceeds the maximum allowed amount.",
+      );
+    }
 
     return pickupRepository.createPickup(userId, {
       note: input.note,
@@ -134,7 +146,9 @@ export const pickupService = {
         throw new ConflictError("Pickup has already been handled.");
       }
       if (pickup.status === "pending") {
-        throw new ConflictError("Pickup must be assigned before updating progress.");
+        throw new ConflictError(
+          "Pickup must be assigned before updating progress.",
+        );
       }
       if (pickup.status === "assigned" && input.status !== "on_the_way") {
         throw new ConflictError(
@@ -148,7 +162,12 @@ export const pickupService = {
         throw new ConflictError("Pickup must move from arrived to completed.");
       }
 
-      return pickupRepository.updatePickupStatus(tx, collectorId, pickupId, input);
+      return pickupRepository.updatePickupStatus(
+        tx,
+        collectorId,
+        pickupId,
+        input,
+      );
     });
   },
 
@@ -161,13 +180,19 @@ export const pickupService = {
         throw new NotFoundError("Pickup not found.");
       }
       if (pickup.status !== "pending" || pickup.collector_id !== null) {
-        throw new ConflictError("Only pending, unassigned pickups can be assigned.");
+        throw new ConflictError(
+          "Only pending, unassigned pickups can be assigned.",
+        );
       }
       const collector = await userRepository.getCollectorById(tx, collectorId);
       if (!collector) {
         throw new NotFoundError("Collector not found.");
       }
-      return pickupRepository.assignPickupToCollector(tx, collectorId, pickupId);
+      return pickupRepository.assignPickupToCollector(
+        tx,
+        collectorId,
+        pickupId,
+      );
     });
   },
 
