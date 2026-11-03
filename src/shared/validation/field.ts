@@ -42,7 +42,8 @@ export function requiredNumber(label: string, min: number, max: number) {
         ? `${label} must not be negative.`
         : `${label} must be at least ${min}.`,
     )
-    .max(max, `${label} must not exceed ${max}.`);
+    .max(max, `${label} must not exceed ${max}.`)
+    .multipleOf(0.01, `${label} must have at most two decimal places.`);
 }
 
 export function requiredId(label: string) {

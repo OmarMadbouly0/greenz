@@ -15,10 +15,10 @@ export const createPickupSchema = z.object({
         materialId: requiredId("Material"),
         quantity: requiredNumber("Quantity", 0.25, 100000),
         note: optionalText("Item note", 500),
-      }),
+      }).strict(),
     )
     .min(1, "At least one material required."),
-});
+}).strict();
 
 export type CreatePickupInput = z.output<typeof createPickupSchema>;
 
