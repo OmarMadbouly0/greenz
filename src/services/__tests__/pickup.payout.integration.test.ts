@@ -9,7 +9,10 @@ import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { pickupService } from "@/services/pickup.service";
 import { getPrisma } from "@/infrastructure/database/prisma";
-import { ConflictError, NotFoundError } from "@/shared/errors/application-error";
+import {
+  ConflictError,
+  NotFoundError,
+} from "@/shared/errors/application-error";
 
 const execFileAsync = promisify(execFile);
 const requireFromTest = createRequire(import.meta.url);
@@ -114,10 +117,16 @@ describe("PickupService.updatePayoutStatus", () => {
       },
     });
     const otherWallet = await prisma.wallet.create({
-      data: { user_id: otherCustomer.id, phone: "01100000002", balance: "700.10" },
+      data: {
+        user_id: otherCustomer.id,
+        phone: "01100000002",
+        balance: "700.10",
+      },
     });
 
-    const result = await pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const result = await pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
       include: { items: true },
@@ -130,13 +139,17 @@ describe("PickupService.updatePayoutStatus", () => {
     const { items, ...savedFields } = saved;
     expect(result).toEqual(savedFields);
     expect(items).toEqual(before.items);
-    const savedWallet = await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+    const savedWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { id: wallet.id },
+    });
     expect(savedWallet).toEqual({
       ...wallet,
       balance: new Prisma.Decimal("149.25"),
       updated_at: savedWallet.updated_at,
     });
-    expect(await prisma.wallet.findUniqueOrThrow({ where: { id: otherWallet.id } })).toEqual(otherWallet);
+    expect(
+      await prisma.wallet.findUniqueOrThrow({ where: { id: otherWallet.id } }),
+    ).toEqual(otherWallet);
     const transactions = await prisma.walletTransaction.findMany();
     expect(transactions).toHaveLength(1);
     expect(transactions[0]).toMatchObject({
@@ -196,7 +209,9 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const result = await pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    const result = await pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
       include: { items: true },
@@ -209,7 +224,9 @@ describe("PickupService.updatePayoutStatus", () => {
     const { items, ...savedFields } = saved;
     expect(result).toEqual(savedFields);
     expect(items).toEqual(before.items);
-    expect(await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } })).toEqual(wallet);
+    expect(
+      await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
+    ).toEqual(wallet);
     expect(await prisma.walletTransaction.count()).toBe(0);
   });
 
@@ -254,7 +271,9 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const result = await pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    const result = await pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
       include: { items: true },
@@ -323,13 +342,19 @@ describe("PickupService.updatePayoutStatus", () => {
     });
     await prisma.pickup.delete({ where: { id: deleted.id } });
 
-    const payment = pickupService.updatePayoutStatus(deleted.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(deleted.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(NotFoundError);
     await expect(payment).rejects.toThrow("Pickup not found.");
-    const cancellation = pickupService.updatePayoutStatus(deleted.id, { status: "cancelled" });
+    const cancellation = pickupService.updatePayoutStatus(deleted.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(NotFoundError);
     await expect(cancellation).rejects.toThrow("Pickup not found.");
-    expect(await prisma.pickup.findUnique({ where: { id: deleted.id } })).toBeNull();
+    expect(
+      await prisma.pickup.findUnique({ where: { id: deleted.id } }),
+    ).toBeNull();
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -383,7 +408,9 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(NotFoundError);
     await expect(payment).rejects.toThrow("Customer wallet not found.");
     expect(
@@ -444,10 +471,14 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
     await expect(payment).rejects.toThrow("Pickup has no payout amount.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
     await expect(cancellation).rejects.toThrow("Pickup has no payout amount.");
     expect(
@@ -510,12 +541,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Payout can only be updated for completed pickups.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Payout can only be updated for completed pickups.");
+    await expect(cancellation).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -576,12 +615,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Payout can only be updated for completed pickups.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Payout can only be updated for completed pickups.");
+    await expect(cancellation).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -642,12 +689,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Payout can only be updated for completed pickups.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Payout can only be updated for completed pickups.");
+    await expect(cancellation).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -708,12 +763,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Payout can only be updated for completed pickups.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Payout can only be updated for completed pickups.");
+    await expect(cancellation).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -774,12 +837,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Payout can only be updated for completed pickups.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Payout can only be updated for completed pickups.");
+    await expect(cancellation).rejects.toThrow(
+      "Payout can only be updated for completed pickups.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -848,7 +919,9 @@ describe("PickupService.updatePayoutStatus", () => {
       },
     });
 
-    const update = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const update = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(update).rejects.toBeInstanceOf(ConflictError);
     await expect(update).rejects.toThrow("Payout has already been done.");
     expect(
@@ -860,7 +933,9 @@ describe("PickupService.updatePayoutStatus", () => {
     expect(
       await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
     ).toEqual(wallet);
-    expect(await prisma.walletTransaction.findMany()).toEqual([existingTransaction]);
+    expect(await prisma.walletTransaction.findMany()).toEqual([
+      existingTransaction,
+    ]);
   });
 
   it("rejects cancelling an already paid payout", async () => {
@@ -919,7 +994,9 @@ describe("PickupService.updatePayoutStatus", () => {
       },
     });
 
-    const update = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    const update = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(update).rejects.toBeInstanceOf(ConflictError);
     await expect(update).rejects.toThrow("Payout has already been done.");
     expect(
@@ -931,7 +1008,9 @@ describe("PickupService.updatePayoutStatus", () => {
     expect(
       await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
     ).toEqual(wallet);
-    expect(await prisma.walletTransaction.findMany()).toEqual([existingTransaction]);
+    expect(await prisma.walletTransaction.findMany()).toEqual([
+      existingTransaction,
+    ]);
   });
 
   it("rejects paying a cancelled payout", async () => {
@@ -982,7 +1061,9 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const update = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const update = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(update).rejects.toBeInstanceOf(ConflictError);
     await expect(update).rejects.toThrow("Payout has already been done.");
     expect(
@@ -1045,7 +1126,9 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const update = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    const update = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(update).rejects.toBeInstanceOf(ConflictError);
     await expect(update).rejects.toThrow("Payout has already been done.");
     expect(
@@ -1131,7 +1214,9 @@ describe("PickupService.updatePayoutStatus", () => {
     const { items, ...savedFields } = saved;
     expect(fulfilled[0].value).toEqual(savedFields);
     expect(items).toEqual(before.items);
-    const savedWallet = await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+    const savedWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { id: wallet.id },
+    });
     const transactions = await prisma.walletTransaction.findMany();
     expect(savedWallet.balance.toFixed(2)).toBe("149.25");
     expect(transactions).toHaveLength(1);
@@ -1205,7 +1290,8 @@ describe("PickupService.updatePayoutStatus", () => {
       where: { id: before.id },
       include: { items: true },
     });
-    const winningStatus = results[0].status === "fulfilled" ? "paid" : "cancelled";
+    const winningStatus =
+      results[0].status === "fulfilled" ? "paid" : "cancelled";
     expect(saved).toEqual({
       ...before,
       payout_status: winningStatus,
@@ -1214,7 +1300,9 @@ describe("PickupService.updatePayoutStatus", () => {
     const { items, ...savedFields } = saved;
     expect(fulfilled[0].value).toEqual(savedFields);
     expect(items).toEqual(before.items);
-    const savedWallet = await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+    const savedWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { id: wallet.id },
+    });
     const transactions = await prisma.walletTransaction.findMany();
     if (winningStatus === "paid") {
       expect(savedWallet.balance.toFixed(2)).toBe("149.25");
@@ -1301,7 +1389,10 @@ describe("PickupService.updatePayoutStatus", () => {
       pickupService.updatePayoutStatus(before.id, { status: "paid" }),
       pickupService.updatePayoutStatus(second.id, { status: "paid" }),
     ]);
-    expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+    expect(results.map((result) => result.status)).toEqual([
+      "fulfilled",
+      "fulfilled",
+    ]);
     const savedFirst = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
       include: { items: true },
@@ -1320,9 +1411,13 @@ describe("PickupService.updatePayoutStatus", () => {
       payout_status: "paid",
       updated_at: savedSecond.updated_at,
     });
-    const savedWallet = await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+    const savedWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { id: wallet.id },
+    });
     expect(savedWallet.balance.toFixed(2)).toBe("159.52");
-    const transactions = await prisma.walletTransaction.findMany({ orderBy: { pickup_id: "asc" } });
+    const transactions = await prisma.walletTransaction.findMany({
+      orderBy: { pickup_id: "asc" },
+    });
     expect(transactions).toHaveLength(2);
     expect(transactions[0]).toMatchObject({
       wallet_id: wallet.id,
@@ -1394,8 +1489,12 @@ describe("PickupService.updatePayoutStatus", () => {
       },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
-    await expect(payment).rejects.toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
+    await expect(payment).rejects.toBeInstanceOf(
+      Prisma.PrismaClientKnownRequestError,
+    );
     await expect(payment).rejects.toMatchObject({ code: "P2002" });
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -1406,7 +1505,9 @@ describe("PickupService.updatePayoutStatus", () => {
     expect(
       await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
     ).toEqual(wallet);
-    expect(await prisma.walletTransaction.findMany()).toEqual([existingTransaction]);
+    expect(await prisma.walletTransaction.findMany()).toEqual([
+      existingTransaction,
+    ]);
   });
 
   it("rejects a zero payout amount", async () => {
@@ -1457,12 +1558,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Pickup payout amount must be greater than zero.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Pickup payout amount must be at least 1.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Pickup payout amount must be greater than zero.");
+    await expect(cancellation).rejects.toThrow(
+      "Pickup payout amount must be at least 1.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -1523,12 +1632,20 @@ describe("PickupService.updatePayoutStatus", () => {
       include: { items: true },
     });
 
-    const payment = pickupService.updatePayoutStatus(before.id, { status: "paid" });
+    const payment = pickupService.updatePayoutStatus(before.id, {
+      status: "paid",
+    });
     await expect(payment).rejects.toBeInstanceOf(ConflictError);
-    await expect(payment).rejects.toThrow("Pickup payout amount must be greater than zero.");
-    const cancellation = pickupService.updatePayoutStatus(before.id, { status: "cancelled" });
+    await expect(payment).rejects.toThrow(
+      "Pickup payout amount must be at least 1.",
+    );
+    const cancellation = pickupService.updatePayoutStatus(before.id, {
+      status: "cancelled",
+    });
     await expect(cancellation).rejects.toBeInstanceOf(ConflictError);
-    await expect(cancellation).rejects.toThrow("Pickup payout amount must be greater than zero.");
+    await expect(cancellation).rejects.toThrow(
+      "Pickup payout amount must be at least 1.",
+    );
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -1541,4 +1658,3 @@ describe("PickupService.updatePayoutStatus", () => {
     expect(await prisma.walletTransaction.count()).toBe(0);
   });
 });
-
