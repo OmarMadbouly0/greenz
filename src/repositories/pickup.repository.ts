@@ -27,9 +27,7 @@ export const pickupRepository = {
         where,
         skip,
         take,
-        orderBy: {
-          created_at: "desc",
-        },
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
         select: {
           id: true,
           status: true,
@@ -139,7 +137,11 @@ export const pickupRepository = {
       },
     });
   },
-  async cancelPickup(tx: Prisma.TransactionClient, userId: number, pickupId: number) {
+  async cancelPickup(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    pickupId: number,
+  ) {
     return tx.pickup.update({
       where: {
         id: pickupId,
@@ -291,7 +293,10 @@ export const pickupRepository = {
       },
     });
   },
-  async unassignPickupFromCollector(tx: Prisma.TransactionClient, pickupId: number) {
+  async unassignPickupFromCollector(
+    tx: Prisma.TransactionClient,
+    pickupId: number,
+  ) {
     return tx.pickup.update({
       where: {
         id: pickupId,
