@@ -952,4 +952,112 @@ describe("PickupService.cancelPickup", () => {
       await prisma.walletTransaction.count({ where: { wallet_id: wallet.id } }),
     ).toBe(transactions);
   });
+
+  it("allows only one of cancellation and collector progress to succeed concurrently", async () => {
+    const customer = await prisma.user.create({
+      data: {
+        full_name: "Cancellation race customer",
+        email: "cancel-progress-race@example.com",
+        password_hash: "unused",
+        role: "customer",
+      },
+    });
+    const collector = await prisma.user.create({
+      data: {
+        full_name: "Cancellation race collector",
+        email: "cancel-progress-race-collector@example.com",
+        password_hash: "unused",
+        role: "collector",
+      },
+    });
+    const wallet = await prisma.wallet.create({
+      data: { user_id: customer.id, phone: "01100000014", balance: 190 },
+    });
+    const material = await prisma.material.create({
+      data: {
+        name: "Cancellation race plastic",
+        unit: "kg",
+        current_price: 10,
+      },
+    });
+    const before = await prisma.pickup.create({
+      data: {
+        customer_id: customer.id,
+        collector_id: collector.id,
+        status: "assigned",
+        payout_status: "pending",
+        payout: 40,
+        note: "Cancellation races with collector progress.",
+        items: {
+          create: {
+            material_id: material.id,
+            quantity: 4,
+            price_per_unit: 10,
+            note: "Packed bags.",
+          },
+        },
+      },
+      include: { items: true },
+    });
+    const transactions = await prisma.walletTransaction.count({
+      where: { wallet_id: wallet.id },
+    });
+
+    const started = Date.now();
+    const results = await Promise.allSettled([
+      pickupService.cancelPickup(customer.id, before.id),
+      pickupService.updatePickupStatus(collector.id, before.id, {
+        status: "on_the_way",
+      }),
+    ]);
+    const ended = Date.now();
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const success = results.find((result) => result.status === "fulfilled");
+    const failure = results.find((result) => result.status === "rejected");
+    if (success?.status !== "fulfilled" || failure?.status !== "rejected") {
+      throw new Error("Expected one successful operation and one rejection.");
+    }
+    expect(failure.reason).toBeInstanceOf(ConflictError);
+
+    const saved = await prisma.pickup.findUniqueOrThrow({
+      where: { id: before.id },
+      include: { items: true },
+    });
+    if (results[0].status === "fulfilled") {
+      expect(saved.status).toBe("cancelled");
+      expect(saved.payout_status).toBe("cancelled");
+      expect(saved.cancelled_at).toBeInstanceOf(Date);
+      expect(saved.cancelled_at!.getTime()).toBeGreaterThanOrEqual(started);
+      expect(saved.cancelled_at!.getTime()).toBeLessThanOrEqual(ended);
+      expect(failure.reason.message).toBe("Pickup has already been handled.");
+    } else {
+      expect(saved.status).toBe("on_the_way");
+      expect(saved.cancelled_at).toBeNull();
+      expect(saved.payout_status).toBe("pending");
+      expect(failure.reason.message).toBe(
+        "Only pending or assigned pickups can be canceled.",
+      );
+    }
+    expect(saved).toEqual({
+      ...before,
+      status: success.value.status,
+      payout_status: success.value.payout_status,
+      cancelled_at: success.value.cancelled_at,
+      updated_at: success.value.updated_at,
+    });
+    const { items, ...savedFields } = saved;
+    expect(success.value).toEqual(savedFields);
+    expect(items).toEqual(before.items);
+    expect(
+      await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
+    ).toEqual(wallet);
+    expect(
+      await prisma.walletTransaction.count({ where: { wallet_id: wallet.id } }),
+    ).toBe(transactions);
+  });
 });
