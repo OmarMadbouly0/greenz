@@ -787,7 +787,7 @@ describe("PickupService.createPickup", () => {
     ).toBe(0);
   });
 
-  it("accepts a material with the minimum price of 1", async () => {
+  it("accepts the minimum material price and payout of 1", async () => {
     const customer = await prisma.user.create({
       data: {
         full_name: "Customer testing minimum price",
@@ -806,20 +806,20 @@ describe("PickupService.createPickup", () => {
     });
 
     const pickup = await pickupService.createPickup(customer.id, {
-      items: [{ materialId: material.id, quantity: 0.25 }],
+      items: [{ materialId: material.id, quantity: 1 }],
     });
 
-    expect(pickup.payout?.toString()).toBe("0.25");
+    expect(pickup.payout?.toString()).toBe("1");
 
     const savedPickup = await prisma.pickup.findUniqueOrThrow({
       where: { id: pickup.id },
       include: { items: true },
     });
 
-    expect(savedPickup.payout?.toString()).toBe("0.25");
+    expect(savedPickup.payout?.toString()).toBe("1");
     expect(savedPickup.items).toHaveLength(1);
     expect(savedPickup.items[0].material_id).toBe(material.id);
-    expect(savedPickup.items[0].quantity.toString()).toBe("0.25");
+    expect(savedPickup.items[0].quantity.toString()).toBe("1");
     expect(savedPickup.items[0].price_per_unit.toString()).toBe("1");
   });
 
@@ -846,7 +846,7 @@ describe("PickupService.createPickup", () => {
     });
 
     const result = pickupService.createPickup(customer.id, {
-      items: [{ materialId: material.id, quantity: 100 }],
+      items: [{ materialId: material.id, quantity: 100.01 }],
     });
 
     await expect(result).rejects.toBeInstanceOf(ConflictError);
@@ -892,18 +892,18 @@ describe("PickupService.createPickup", () => {
     const pickup = await pickupService.createPickup(customer.id, {
       items: [
         { materialId: plastic.id, quantity: 100 },
-        { materialId: paper.id, quantity: 0.99 },
+        { materialId: paper.id, quantity: 1 },
       ],
     });
 
-    expect(pickup.payout?.toString()).toBe("99999999.99");
+    expect(pickup.payout?.toString()).toBe("100000000");
 
     const savedPickup = await prisma.pickup.findUniqueOrThrow({
       where: { id: pickup.id },
       include: { items: true },
     });
 
-    expect(savedPickup.payout?.toString()).toBe("99999999.99");
+    expect(savedPickup.payout?.toString()).toBe("100000000");
     expect(savedPickup.items).toHaveLength(2);
 
     const plasticItem = savedPickup.items.find(
@@ -915,7 +915,7 @@ describe("PickupService.createPickup", () => {
 
     expect(plasticItem?.quantity.toString()).toBe("100");
     expect(plasticItem?.price_per_unit.toString()).toBe("999999.99");
-    expect(paperItem?.quantity.toString()).toBe("0.99");
+    expect(paperItem?.quantity.toString()).toBe("1");
     expect(paperItem?.price_per_unit.toString()).toBe("1");
   });
 
@@ -937,21 +937,21 @@ describe("PickupService.createPickup", () => {
       data: {
         name: "Combined overflow plastic",
         unit: "kg",
-        current_price: 1000000,
+        current_price: "999999.99",
       },
     });
     const paper = await prisma.material.create({
       data: {
         name: "Combined overflow paper",
         unit: "kg",
-        current_price: 1000000,
+        current_price: 1,
       },
     });
 
     const result = pickupService.createPickup(customer.id, {
       items: [
-        { materialId: plastic.id, quantity: 50 },
-        { materialId: paper.id, quantity: 50 },
+        { materialId: plastic.id, quantity: 100 },
+        { materialId: paper.id, quantity: 1.01 },
       ],
     });
 

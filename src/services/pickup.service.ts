@@ -112,12 +112,18 @@ export const pickupService = {
     const payout = items
       .reduce(
         (total, item) =>
-          total.plus(new Prisma.Decimal(item.quantity).mul(item.price_per_unit)),
+          total.plus(
+            new Prisma.Decimal(item.quantity).mul(item.price_per_unit),
+          ),
         new Prisma.Decimal(0),
       )
       .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
-    if (payout.gt("99999999.99")) {
+    if (payout.lt(1)) {
+      throw new ConflictError("Pickup payout amount must be at least 1.");
+    }
+
+    if (payout.gt(100_000_000)) {
       throw new ConflictError(
         "Pickup payout exceeds the maximum allowed amount.",
       );
@@ -233,6 +239,16 @@ export const pickupService = {
 
       if (!pickup.payout) {
         throw new ConflictError("Pickup has no payout amount.");
+      }
+
+      if (pickup.payout.lt(1)) {
+        throw new ConflictError("Pickup payout amount must be at least 1.");
+      }
+
+      if (pickup.payout.gt(100_000_000)) {
+        throw new ConflictError(
+          "Pickup payout exceeds the maximum allowed amount.",
+        );
       }
 
       if (input.status === "paid") {
