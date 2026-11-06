@@ -50,7 +50,8 @@ export function requiredId(label: string) {
   return z
     .number(`${label} is required.`)
     .int(`${label} must be an integer.`)
-    .positive(`${label} must be a positive number.`);
+    .positive(`${label} must be a positive number.`)
+    .max(2147483647, `${label} must not exceed 2147483647.`);
 }
 
 export function requiredEmail() {

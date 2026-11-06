@@ -1,4 +1,69 @@
-import { createPickupSchema } from "@/services/pickup.schemas";
+import {
+  assignPickupToCollectorSchema,
+  createPickupSchema,
+} from "@/services/pickup.schemas";
+
+describe("pickup ID range", () => {
+  it("accepts the minimum material and collector ID", () => {
+    const id = 1;
+    expect(
+      createPickupSchema.safeParse({
+        items: [{ materialId: id, quantity: 1 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      assignPickupToCollectorSchema.safeParse({ collectorId: id }).success,
+    ).toBe(true);
+  });
+
+  it("accepts the maximum material and collector ID", () => {
+    const id = 2147483647;
+    expect(
+      createPickupSchema.safeParse({
+        items: [{ materialId: id, quantity: 1 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      assignPickupToCollectorSchema.safeParse({ collectorId: id }).success,
+    ).toBe(true);
+  });
+
+  it("rejects material and collector IDs above the database maximum", () => {
+    const id = 2147483648;
+    expect(
+      createPickupSchema.safeParse({
+        items: [{ materialId: id, quantity: 1 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      assignPickupToCollectorSchema.safeParse({ collectorId: id }).success,
+    ).toBe(false);
+  });
+
+  it("rejects material and collector IDs at the JavaScript safe integer maximum", () => {
+    const id = Number.MAX_SAFE_INTEGER;
+    expect(
+      createPickupSchema.safeParse({
+        items: [{ materialId: id, quantity: 1 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      assignPickupToCollectorSchema.safeParse({ collectorId: id }).success,
+    ).toBe(false);
+  });
+
+  it("rejects material and collector IDs beyond the JavaScript safe integer range", () => {
+    const id = Number.MAX_SAFE_INTEGER + 1;
+    expect(
+      createPickupSchema.safeParse({
+        items: [{ materialId: id, quantity: 1 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      assignPickupToCollectorSchema.safeParse({ collectorId: id }).success,
+    ).toBe(false);
+  });
+});
 
 describe("createPickupSchema", () => {
   it("rejects an empty items list", () => {
@@ -255,5 +320,4 @@ describe("createPickupSchema", () => {
 
     expect(result.success).toBe(false);
   });
-
 });
