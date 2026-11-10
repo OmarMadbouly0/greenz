@@ -13,6 +13,10 @@ export const walletService = {
     if (existingWallet) {
       throw new ConflictError("Wallet already exists for this user.");
     }
+    const existingPhone = await walletRepository.getWalletByPhone(input.phone);
+    if (existingPhone) {
+      throw new ConflictError("Phone number already exists in another wallet.");
+    }
     const wallet = await walletRepository.createWallet(userId, input.phone);
     return wallet;
   },

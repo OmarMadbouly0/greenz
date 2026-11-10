@@ -54,6 +54,11 @@ export const walletRepository = {
       where: { user_id: userId },
     });
   },
+  async getWalletByPhone(phone: string) {
+    return getPrisma().wallet.findUnique({
+      where: { phone },
+    });
+  },
   async getWalletByUserIdTx(tx: Prisma.TransactionClient, userId: number) {
     return tx.wallet.findUnique({
       where: {
