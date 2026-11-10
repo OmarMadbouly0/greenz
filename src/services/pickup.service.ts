@@ -17,16 +17,29 @@ import { Prisma } from "@/../generated/prisma/client";
 import { PickupListQuery } from "./pickup.schemas";
 import { pageResult } from "@/shared/pagination";
 import { withTransaction } from "@/infrastructure/database/prisma";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 
 type UserRole = "customer" | "collector" | "admin";
 
 export const pickupService = {
-  async getPickups(userId: number, role: UserRole) {
+  async getPickups(
+    userId: number,
+    role: UserRole,
+    pagination: PaginationInput,
+  ) {
     if (role === "customer") {
-      return pickupRepository.getPickupsByCustomerId(userId);
+      const { items, total } = await pickupRepository.getPickupsByCustomerId(
+        userId,
+        pagination,
+      );
+      return pageResult(items, total, pagination.page, pagination.pageSize);
     }
     if (role === "collector") {
-      return pickupRepository.getPickupsByCollectorId(userId);
+      const { items, total } = await pickupRepository.getPickupsByCollectorId(
+        userId,
+        pagination,
+      );
+      return pageResult(items, total, pagination.page, pagination.pageSize);
     }
     throw new ForbiddenError("User does not have the required role.");
   },

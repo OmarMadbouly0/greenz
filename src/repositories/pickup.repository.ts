@@ -5,17 +5,26 @@ import {
 } from "@/services/pickup.schemas";
 import { Prisma } from "@/../generated/prisma/client";
 import { pageArgs } from "@/shared/pagination";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 
 export const pickupRepository = {
-  async getPickupsByCustomerId(userId: number) {
-    return getPrisma().pickup.findMany({
-      where: {
-        customer_id: userId,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
-    });
+  async getPickupsByCustomerId(
+    userId: number,
+    { page, pageSize }: PaginationInput,
+  ) {
+    const { skip, take } = pageArgs(page, pageSize);
+    const where = { customer_id: userId };
+    const [items, total] = await Promise.all([
+      getPrisma().pickup.findMany({
+        where,
+        skip,
+        take,
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      }),
+      getPrisma().pickup.count({ where }),
+    ]);
+
+    return { items, total };
   },
   async getAllPickups({ page, pageSize, status }: PickupListQuery) {
     const { skip, take } = pageArgs(page, pageSize);
@@ -86,15 +95,23 @@ export const pickupRepository = {
     };
   },
 
-  async getPickupsByCollectorId(userId: number) {
-    return getPrisma().pickup.findMany({
-      where: {
-        collector_id: userId,
-      },
-      orderBy: {
-        created_at: "desc",
-      },
-    });
+  async getPickupsByCollectorId(
+    userId: number,
+    { page, pageSize }: PaginationInput,
+  ) {
+    const { skip, take } = pageArgs(page, pageSize);
+    const where = { collector_id: userId };
+    const [items, total] = await Promise.all([
+      getPrisma().pickup.findMany({
+        where,
+        skip,
+        take,
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      }),
+      getPrisma().pickup.count({ where }),
+    ]);
+
+    return { items, total };
   },
   async getPickupByUserId(userId: number, pickupId: number) {
     return getPrisma().pickup.findFirst({

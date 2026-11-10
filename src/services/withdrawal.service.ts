@@ -7,6 +7,7 @@ import {
   NotFoundError,
 } from "@/shared/errors/application-error";
 import { pageResult } from "@/shared/pagination";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 import {
   CreateWithdrawalInput,
   UpdateWithdrawalStatusInput,
@@ -57,12 +58,16 @@ export const withdrawalService = {
     });
   },
 
-  async getWithdrawalsByUserId(userId: number) {
+  async getWithdrawalsByUserId(userId: number, pagination: PaginationInput) {
     const wallet = await walletRepository.getWalletByUserId(userId);
     if (!wallet) {
       throw new NotFoundError("Wallet not found.");
     }
-    return withdrawalRepository.getWithdrawalsByWalletId(wallet.id);
+    const { items, total } = await withdrawalRepository.getWithdrawalsByWalletId(
+      wallet.id,
+      pagination,
+    );
+    return pageResult(items, total, pagination.page, pagination.pageSize);
   },
 
   async getAllWithdrawals(query: WithdrawalListQuery) {

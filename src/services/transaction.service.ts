@@ -23,16 +23,20 @@ export const transactionService = {
 
     return pageResult(items, total, pagination.page, pagination.pageSize);
   },
-  async getWalletTransactions(walletId: number) {
+  async getWalletTransactions(walletId: number, pagination: PaginationInput) {
     await walletService.exists(walletId);
-    const transactions = await walletRepository.getWalletTransactions(walletId);
-    return transactions;
-  },
-  async getWalletTransactionsByUserId(userId: number) {
-    const wallet = await walletService.getWalletByUserId(userId);
-    const transactions = await walletRepository.getWalletTransactions(
-      wallet.id,
+    const { items, total } = await walletRepository.getWalletTransactions(
+      walletId,
+      pagination,
     );
-    return transactions;
+    return pageResult(items, total, pagination.page, pagination.pageSize);
+  },
+  async getWalletTransactionsByUserId(userId: number, pagination: PaginationInput) {
+    const wallet = await walletService.getWalletByUserId(userId);
+    const { items, total } = await walletRepository.getWalletTransactions(
+      wallet.id,
+      pagination,
+    );
+    return pageResult(items, total, pagination.page, pagination.pageSize);
   },
 };

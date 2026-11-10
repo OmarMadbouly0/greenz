@@ -6,15 +6,21 @@ import { getCurrentUser } from "@/modules/identity/application/current-user";
 import { readJsonBody } from "../_shared/request-body";
 import { createPickupSchema } from "@/services/pickup.schemas";
 import { parseInput } from "@/shared/validation/parse-input";
+import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     requireRole(currentUser, ["customer", "collector"]);
 
+    const query = parseInput(
+      paginationQuerySchema,
+      Object.fromEntries(new URL(request.url).searchParams),
+    );
     const pickups = await pickupService.getPickups(
       currentUser.id,
-      currentUser.role ,
+      currentUser.role,
+      query,
     );
 
     return apiOk(pickups, 200);

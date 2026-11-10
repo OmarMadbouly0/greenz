@@ -5,6 +5,7 @@ import {
   WithdrawalListQuery,
 } from "@/services/withdrawal.schemas";
 import { pageArgs } from "@/shared/pagination";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 
 export const withdrawalRepository = {
   async lockWithdrawal(tx: Prisma.TransactionClient, withdrawalId: number) {
@@ -74,11 +75,23 @@ export const withdrawalRepository = {
     });
   },
 
-  async getWithdrawalsByWalletId(walletId: number) {
-    return getPrisma().withdrawalRequest.findMany({
-      where: { wallet_id: walletId },
-      orderBy: { id: "desc" },
-    });
+  async getWithdrawalsByWalletId(
+    walletId: number,
+    { page, pageSize }: PaginationInput,
+  ) {
+    const { skip, take } = pageArgs(page, pageSize);
+    const where = { wallet_id: walletId };
+    const [items, total] = await Promise.all([
+      getPrisma().withdrawalRequest.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { id: "desc" },
+      }),
+      getPrisma().withdrawalRequest.count({ where }),
+    ]);
+
+    return { items, total };
   },
 
   async getAllWithdrawals({ page, pageSize, status }: WithdrawalListQuery) {

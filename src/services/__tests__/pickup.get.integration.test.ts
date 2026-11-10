@@ -542,11 +542,14 @@ describe("PickupService read methods", () => {
       },
     });
 
-    const result = await pickupService.getPickups(customer.id, "customer");
+    const result = await pickupService.getPickups(customer.id, "customer", {
+      page: 1,
+      pageSize: 20,
+    });
 
-    expect(result).toHaveLength(2);
-    expect(result).toEqual([newerPickup, olderPickup]);
-    expect(result.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
+    expect(result.items).toHaveLength(2);
+    expect(result.items).toEqual([newerPickup, olderPickup]);
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
   });
 
   it("returns only pickups assigned to the collector", async () => {
@@ -609,12 +612,15 @@ describe("PickupService read methods", () => {
       },
     });
 
-    const result = await pickupService.getPickups(collector.id, "collector");
+    const result = await pickupService.getPickups(collector.id, "collector", {
+      page: 1,
+      pageSize: 20,
+    });
 
-    expect(result).toHaveLength(2);
-    expect(result).toEqual([newerPickup, olderPickup]);
-    expect(result.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
-    expect(result.map((pickup) => pickup.id)).not.toContain(unassignedPickup.id);
+    expect(result.items).toHaveLength(2);
+    expect(result.items).toEqual([newerPickup, olderPickup]);
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(unassignedPickup.id);
   });
 
   it("returns the second page of all pickups with the total count and page count", async () => {

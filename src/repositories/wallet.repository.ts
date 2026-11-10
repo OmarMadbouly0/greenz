@@ -67,11 +67,23 @@ export const walletRepository = {
     });
   },
 
-  async getWalletTransactions(walletId: number) {
-    return getPrisma().walletTransaction.findMany({
-      where: { wallet_id: walletId },
-      orderBy: { created_at: "desc" },
-    });
+  async getWalletTransactions(
+    walletId: number,
+    { page, pageSize }: PaginationInput,
+  ) {
+    const { skip, take } = pageArgs(page, pageSize);
+    const where = { wallet_id: walletId };
+    const [items, total] = await Promise.all([
+      getPrisma().walletTransaction.findMany({
+        where,
+        skip,
+        take,
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      }),
+      getPrisma().walletTransaction.count({ where }),
+    ]);
+
+    return { items, total };
   },
   async getWalletById(walletId: number) {
     return getPrisma().wallet.findUnique({

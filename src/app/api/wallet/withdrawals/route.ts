@@ -6,6 +6,7 @@ import { requireRole } from "@/modules/identity/application/guards";
 import { createWithdrawalSchema } from "@/services/withdrawal.schemas";
 import { withdrawalService } from "@/services/withdrawal.service";
 import { parseInput } from "@/shared/validation/parse-input";
+import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
 
 export async function POST(request: Request) {
   try {
@@ -25,13 +26,18 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     requireRole(currentUser, ["customer"]);
 
+    const query = parseInput(
+      paginationQuerySchema,
+      Object.fromEntries(new URL(request.url).searchParams),
+    );
     const withdrawals = await withdrawalService.getWithdrawalsByUserId(
       currentUser.id,
+      query,
     );
     return apiOk(withdrawals, 200);
   } catch (error) {

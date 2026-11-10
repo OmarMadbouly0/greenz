@@ -187,7 +187,7 @@ describe("Pickup creation, reads, and lifecycle", () => {
     for (const actor of ["customer", "collector"] as const) {
       const response = await request("GET", "/api/pickups", cookies[actor]);
       expect(response.status).toBe(200);
-      expect(await response.json()).toMatchObject([{ id: pickupId }]);
+      expect(await response.json()).toMatchObject({ items: [{ id: pickupId }] });
     }
     const response = await request("GET", "/api/admin/pickups", cookies.admin);
     expect(response.status).toBe(200);
@@ -286,7 +286,7 @@ describe("Pickup creation, reads, and lifecycle", () => {
     for (const actor of ["customer", "collector"] as const) {
       const scoped = await request("GET", "/api/pickups", cookies[actor]);
       expect(scoped.status).toBe(200);
-      expect(await scoped.json()).toMatchObject([{ id: pickupId }]);
+      expect(await scoped.json()).toMatchObject({ items: [{ id: pickupId }] });
     }
     expect(await snapshot()).toEqual(before);
   });
