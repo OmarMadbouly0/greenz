@@ -22,11 +22,7 @@ export function verifyToken(token: string): { userId: number } {
   } catch {
     throw new InvalidTokenError("Invalid or expired token.");
   }
-  if (
-    typeof payload !== "object" ||
-    payload === null ||
-    typeof payload.userId !== "number"
-  ) {
+  if (typeof payload !== "object" || typeof payload.userId !== "number") {
     throw new InvalidTokenError("Invalid token payload.");
   }
 
