@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/modules/identity/application/current-user";
 import { requireRole } from "@/modules/identity/application/guards";
 import { apiOk } from "../../../_shared/responses";
 import { handleRouteError } from "../../../_shared/route-errors";
-import { collectorService } from "@/services/collector.service";
+import { adminService } from "@/services/admin.service";
 import { authService } from "@/services/auth.service";
 import { readJsonBody } from "../../../_shared/request-body";
 import { parseInput } from "@/shared/validation/parse-input";
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       paginationQuerySchema,
       Object.fromEntries(new URL(request.url).searchParams),
     );
-    const collectors = await collectorService.getAllCollectors(query);
+    const collectors = await adminService.getUsersByRole("collector", query);
     return apiOk(collectors, 200);
   } catch (error) {
     return handleRouteError(error);
