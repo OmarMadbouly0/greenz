@@ -51,14 +51,21 @@ export const pickupService = {
   async getPickupById(userId: number, role: UserRole, pickupId: number) {
     let pickup;
 
-    if (role === "customer") {
-      pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
-    } else if (role === "collector") {
-      pickup = await pickupRepository.getPickupByCollectorId(userId, pickupId);
-    } else if (role === "admin") {
-      pickup = await pickupRepository.getPickupById(pickupId);
-    } else {
-      throw new ForbiddenError("User does not have the required role.");
+    switch (role) {
+      case "customer":
+        pickup = await pickupRepository.getPickupByUserId(userId, pickupId);
+        break;
+      case "collector":
+        pickup = await pickupRepository.getPickupByCollectorId(
+          userId,
+          pickupId,
+        );
+        break;
+      case "admin":
+        pickup = await pickupRepository.getPickupById(pickupId);
+        break;
+      default:
+        throw new ForbiddenError("User does not have the required role.");
     }
 
     if (!pickup) {
@@ -160,24 +167,31 @@ export const pickupService = {
       if (!pickup || pickup.collector_id !== collectorId) {
         throw new NotFoundError("Pickup not found.");
       }
-      if (pickup.status === "completed" || pickup.status === "cancelled") {
-        throw new ConflictError("Pickup has already been handled.");
-      }
-      if (pickup.status === "pending") {
-        throw new ConflictError(
-          "Pickup must be assigned before updating progress.",
-        );
-      }
-      if (pickup.status === "assigned" && input.status !== "on_the_way") {
-        throw new ConflictError(
-          "Pickup must move from assigned to on_the_way.",
-        );
-      }
-      if (pickup.status === "on_the_way" && input.status !== "arrived") {
-        throw new ConflictError("Pickup must move from on_the_way to arrived.");
-      }
-      if (pickup.status === "arrived" && input.status !== "completed") {
-        throw new ConflictError("Pickup must move from arrived to completed.");
+      switch (pickup.status) {
+        case "completed":
+        case "cancelled":
+          throw new ConflictError("Pickup has already been handled.");
+        case "assigned":
+          if (input.status !== "on_the_way") {
+            throw new ConflictError(
+              "Pickup must move from assigned to on_the_way.",
+            );
+          }
+          break;
+        case "on_the_way":
+          if (input.status !== "arrived") {
+            throw new ConflictError(
+              "Pickup must move from on_the_way to arrived.",
+            );
+          }
+          break;
+        case "arrived":
+          if (input.status !== "completed") {
+            throw new ConflictError(
+              "Pickup must move from arrived to completed.",
+            );
+          }
+          break;
       }
 
       return pickupRepository.updatePickupStatus(
@@ -249,18 +263,15 @@ export const pickupService = {
         throw new ConflictError("Payout has already been done.");
       }
 
-      if (!pickup.payout) {
-        throw new ConflictError("Pickup has no payout amount.");
-      }
-
-      if (pickup.payout.lt(1)) {
-        throw new ConflictError("Pickup payout amount must be at least 1.");
-      }
-
-      if (pickup.payout.gt(100_000_000)) {
-        throw new ConflictError(
-          "Pickup payout exceeds the maximum allowed amount.",
-        );
+      switch (true) {
+        case !pickup.payout:
+          throw new ConflictError("Pickup has no payout amount.");
+        case pickup.payout?.lt(1):
+          throw new ConflictError("Pickup payout amount must be at least 1.");
+        case pickup.payout?.gt(100_000_000):
+          throw new ConflictError(
+            "Pickup payout exceeds the maximum allowed amount.",
+          );
       }
 
       if (input.status === "paid") {
