@@ -12,7 +12,7 @@ export const registerCollectorSchema = z.object({
     building: requiredString("Building", 50),
     apartment: optionalText("Apartment", 50),
     floor: optionalText("Floor", 50),
-  }),
-});
+  }).strict(),
+}).strict();
 
 export type RegisterCollectorInput = z.output<typeof registerCollectorSchema>;

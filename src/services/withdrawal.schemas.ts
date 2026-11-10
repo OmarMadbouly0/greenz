@@ -23,6 +23,6 @@ export type UpdateWithdrawalStatusInput = z.output<
 
 export const withdrawalListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(["pending", "paid", "cancelled"]).optional(),
-});
+}).strict();
 
 export type WithdrawalListQuery = z.output<typeof withdrawalListQuerySchema>;

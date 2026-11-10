@@ -14,7 +14,7 @@ export const createMaterialSchema = z.object({
     materialUnit,
     "Unit must be one of the following: kg, g, l, ml, piece.",
   ),
-});
+}).strict();
 
 export type CreateMaterialInput = z.infer<typeof createMaterialSchema>;
 
@@ -28,6 +28,6 @@ export const updateMaterialSchema = z.object({
       "Unit must be one of the following: kg, g, l, ml, piece.",
     )
     .optional(),
-});
+}).strict();
 
 export type UpdateMaterialInput = z.infer<typeof updateMaterialSchema>;

@@ -25,13 +25,13 @@ export type CreatePickupInput = z.output<typeof createPickupSchema>;
 
 export const updatePickupStatusSchema = z.object({
   status: z.enum(["on_the_way", "arrived", "completed"]),
-});
+}).strict();
 
 export type UpdatePickupStatusInput = z.output<typeof updatePickupStatusSchema>;
 
 export const assignPickupToCollectorSchema = z.object({
   collectorId: requiredId("Collector"),
-});
+}).strict();
 
 export type AssignPickupToCollectorInput = z.output<
   typeof assignPickupToCollectorSchema
@@ -39,12 +39,12 @@ export type AssignPickupToCollectorInput = z.output<
 
 export const updatePayoutStatusSchema = z.object({
   status: z.enum(["paid", "cancelled"]),
-});
+}).strict();
 
 export type UpdatePayoutStatusInput = z.output<typeof updatePayoutStatusSchema>;
 
 export const pickupListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(pickupStatuses).optional(),
-});
+}).strict();
 
 export type PickupListQuery = z.output<typeof pickupListQuerySchema>;

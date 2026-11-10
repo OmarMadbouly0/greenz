@@ -16,15 +16,15 @@ export const registerUserSchema = z.object({
     building: requiredString("Building", 50),
     apartment: optionalText("Apartment", 50),
     floor: optionalText("Floor", 50),
-  }),
-});
+  }).strict(),
+}).strict();
 
 export type RegisterInput = z.output<typeof registerUserSchema>;
 
 export const loginUserSchema = z.object({
   email: requiredEmail(),
   password: requiredString("Password", 20, 8),
-});
+}).strict();
 
 export type LoginInput = z.output<typeof loginUserSchema>;
 

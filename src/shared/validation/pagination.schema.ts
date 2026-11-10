@@ -13,6 +13,6 @@ export const paginationQuerySchema = z.object({
     .min(1, "Page size must be at least 1.")
     .max(100, "Page size must not exceed 100.")
     .default(20),
-});
+}).strict();
 
 export type PaginationInput = z.infer<typeof paginationQuerySchema>;
