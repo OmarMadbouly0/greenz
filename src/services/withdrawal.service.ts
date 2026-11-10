@@ -88,9 +88,6 @@ export const withdrawalService = {
       if (withdrawal.status !== "pending") {
         throw new ConflictError("Withdrawal has already been handled.");
       }
-      if (input.status !== "paid" && input.status !== "cancelled") {
-        throw new ConflictError("Withdrawal must move to paid or cancelled.");
-      }
 
       if (input.status === "cancelled") {
         await walletRepository.lockWallet(tx, withdrawal.wallet_id);

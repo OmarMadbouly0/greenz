@@ -268,9 +268,7 @@ export const pickupService = {
         );
       }
 
-      if (input.status === "cancelled") {
-        return pickupRepository.cancelPayout(tx, pickupId);
-      }
+      return pickupRepository.cancelPayout(tx, pickupId);
     });
   },
 };
