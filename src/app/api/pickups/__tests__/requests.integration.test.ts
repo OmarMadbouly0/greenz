@@ -39,7 +39,16 @@ describe("Pickup creation, reads, and lifecycle", () => {
         body,
       );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      const payload = await response.json();
+      expect(payload).toEqual({
+        error: "Invalid input",
+        errors: expect.any(Object),
+      });
+      expect(Array.isArray(payload.errors)).toBe(false);
+      expect(Object.keys(payload.errors).length).toBeGreaterThan(0);
+      for (const message of Object.values(payload.errors)) {
+        expect(message).toEqual(expect.any(String));
+      }
       expect(await snapshot()).toEqual(before);
     }
     for (const body of ["{", ""]) {
@@ -219,7 +228,11 @@ describe("Pickup creation, reads, and lifecycle", () => {
         cookies.admin,
       );
       expect(response.status, `GET ${`/api/admin/pickups?${query}`}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      const field = query.split("=")[0];
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { [field]: expect.any(String) },
+      });
       expect(await snapshot()).toEqual(before);
     }
   });

@@ -27,7 +27,11 @@ describe("Pickup payouts", () => {
         body,
       );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      const field = body === null || Array.isArray(body) ? "input" : "status";
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { [field]: expect.any(String) },
+      });
       expect(await snapshot()).toEqual(before);
     }
     for (const body of ["{", ""]) {

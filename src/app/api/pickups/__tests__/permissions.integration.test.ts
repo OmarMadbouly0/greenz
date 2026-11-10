@@ -201,7 +201,13 @@ describe("Pickup permissions and IDs", () => {
     for (const actor of ["otherCustomer", "otherCollector"] as const) {
       const response = await request("GET", "/api/pickups", cookies[actor]);
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual([]);
+      expect(await response.json()).toEqual({
+        items: [],
+        page: 1,
+        pageSize: 20,
+        total: 0,
+        totalPages: 0,
+      });
     }
   });
 
@@ -344,7 +350,10 @@ describe("Pickup permissions and IDs", () => {
         ],
       });
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { "items.1.materialId": "Material must not exceed 2147483647." },
+      });
       expect(await snapshot()).toEqual(before);
     }
     {
@@ -359,7 +368,10 @@ describe("Pickup permissions and IDs", () => {
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
       ).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { collectorId: "Collector must not exceed 2147483647." },
+      });
       expect(await snapshot()).toEqual(before);
     }
   });
@@ -377,7 +389,10 @@ describe("Pickup permissions and IDs", () => {
         ],
       });
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { "items.1.materialId": "Material must not exceed 2147483647." },
+      });
       expect(await snapshot()).toEqual(before);
     }
     {
@@ -392,7 +407,10 @@ describe("Pickup permissions and IDs", () => {
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
       ).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { collectorId: "Collector must not exceed 2147483647." },
+      });
       expect(await snapshot()).toEqual(before);
     }
   });
@@ -410,7 +428,10 @@ describe("Pickup permissions and IDs", () => {
         ],
       });
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { "items.1.materialId": "Material must be an integer." },
+      });
       expect(await snapshot()).toEqual(before);
     }
     {
@@ -425,7 +446,10 @@ describe("Pickup permissions and IDs", () => {
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
       ).toBe(400);
-      expect(await response.json()).toEqual({ error: expect.any(String) });
+      expect(await response.json()).toEqual({
+        error: "Invalid input",
+        errors: { collectorId: "Collector must be an integer." },
+      });
       expect(await snapshot()).toEqual(before);
     }
   });
