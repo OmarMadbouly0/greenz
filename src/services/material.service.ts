@@ -7,9 +7,6 @@ import { CreateMaterialInput, UpdateMaterialInput } from "./material.schemas";
 export const materialService = {
   async getMaterials() {
     const materials = await materialRepository.getMaterials();
-    if (!materials) {
-      throw new NotFoundError("No Materials!");
-    }
     return materials;
   },
   async getMaterialById(materialId: number) {
