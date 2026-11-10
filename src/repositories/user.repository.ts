@@ -1,5 +1,7 @@
 import { getPrisma } from "@/infrastructure/database/prisma";
 import { Prisma } from "../../generated/prisma/client";
+import { pageArgs } from "@/shared/pagination";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 
 export const userRepository = {
   async findById(id: number) {
@@ -109,16 +111,30 @@ export const userRepository = {
       },
     });
   },
-  async getUsersByRole(role: "customer" | "collector") {
-    return getPrisma().user.findMany({
-      where: { role },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        role: true,
-      },
-    });
+  async getUsersByRole(
+    role: "customer" | "collector",
+    { page, pageSize }: PaginationInput,
+  ) {
+    const { skip, take } = pageArgs(page, pageSize);
+    const where = { role };
+
+    const [items, total] = await Promise.all([
+      getPrisma().user.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { id: "desc" },
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          role: true,
+        },
+      }),
+      getPrisma().user.count({ where }),
+    ]);
+
+    return { items, total };
   },
 
   async countUsersByRole(role: "customer" | "collector" | "admin") {

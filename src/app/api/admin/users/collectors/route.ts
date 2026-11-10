@@ -7,11 +7,17 @@ import { authService } from "@/services/auth.service";
 import { readJsonBody } from "../../../_shared/request-body";
 import { parseInput } from "@/shared/validation/parse-input";
 import { registerCollectorSchema } from "@/services/collector.schemas";
-export async function GET() {
+import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
+
+export async function GET(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     requireRole(currentUser, ["admin"]);
-    const collectors = await collectorService.getAllCollectors();
+    const query = parseInput(
+      paginationQuerySchema,
+      Object.fromEntries(new URL(request.url).searchParams),
+    );
+    const collectors = await collectorService.getAllCollectors(query);
     return apiOk(collectors, 200);
   } catch (error) {
     return handleRouteError(error);

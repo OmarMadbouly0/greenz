@@ -3,12 +3,18 @@ import { requireRole } from "@/modules/identity/application/guards";
 import { apiOk } from "../../../_shared/responses";
 import { handleRouteError } from "../../../_shared/route-errors";
 import { adminService } from "@/services/admin.service";
+import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
+import { parseInput } from "@/shared/validation/parse-input";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     requireRole(currentUser, ["admin"]);
-    const customers = await adminService.getUsersByRole("customer");
+    const query = parseInput(
+      paginationQuerySchema,
+      Object.fromEntries(new URL(request.url).searchParams),
+    );
+    const customers = await adminService.getUsersByRole("customer", query);
     return apiOk(customers, 200);
   } catch (error) {
     return handleRouteError(error);

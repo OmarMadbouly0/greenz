@@ -1,5 +1,7 @@
 import { pickupRepository } from "@/repositories/pickup.repository";
 import { userRepository } from "@/repositories/user.repository";
+import { pageResult } from "@/shared/pagination";
+import { PaginationInput } from "@/shared/validation/pagination.schema";
 
 export const adminService = {
   async getDashboard() {
@@ -56,7 +58,12 @@ export const adminService = {
       },
     };
   },
-  async getUsersByRole(role: "customer" | "collector") {
-    return userRepository.getUsersByRole(role);
+  async getUsersByRole(
+    role: "customer" | "collector",
+    pagination: PaginationInput,
+  ) {
+    const { items, total } = await userRepository.getUsersByRole(role, pagination);
+
+    return pageResult(items, total, pagination.page, pagination.pageSize);
   },
 };
