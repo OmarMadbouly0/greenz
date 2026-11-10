@@ -6,5 +6,3 @@ export type AuthenticatedUser = {
   fullName: string;
   role: UserRole;
 };
-
-export const materialUnit = ["kg", "g", "l", "ml", "piece"] as const;

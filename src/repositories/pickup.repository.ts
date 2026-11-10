@@ -6,6 +6,7 @@ import {
 import { Prisma } from "@/../generated/prisma/client";
 import { pageArgs } from "@/shared/pagination";
 import { PaginationInput } from "@/shared/validation/pagination.schema";
+import type { PickupStatus, PayoutStatus } from "@/modules/pickup/domain/types";
 
 export const pickupRepository = {
   async getPickupsByCustomerId(
@@ -329,15 +330,7 @@ export const pickupRepository = {
     return getPrisma().pickup.count();
   },
 
-  async countPickupsByStatus(
-    status:
-      | "pending"
-      | "assigned"
-      | "on_the_way"
-      | "arrived"
-      | "completed"
-      | "cancelled",
-  ) {
+  async countPickupsByStatus(status: PickupStatus) {
     return getPrisma().pickup.count({
       where: {
         status,
@@ -345,7 +338,7 @@ export const pickupRepository = {
     });
   },
 
-  async countPayoutsByStatus(status: "pending" | "paid" | "cancelled") {
+  async countPayoutsByStatus(status: PayoutStatus) {
     return getPrisma().pickup.count({
       where: {
         payout_status: status,

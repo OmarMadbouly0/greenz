@@ -14,12 +14,11 @@ import {
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
 import { Prisma } from "@/../generated/prisma/client";
+import type { UserRole } from "@/modules/identity/domain/types";
 import { PickupListQuery } from "./pickup.schemas";
 import { pageResult } from "@/shared/pagination";
 import { withTransaction } from "@/infrastructure/database/prisma";
 import { PaginationInput } from "@/shared/validation/pagination.schema";
-
-type UserRole = "customer" | "collector" | "admin";
 
 export const pickupService = {
   async getPickups(

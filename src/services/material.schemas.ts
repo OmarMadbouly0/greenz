@@ -4,7 +4,7 @@ import {
   requiredNumber,
   requiredString,
 } from "@/shared/validation/field";
-import { materialUnit } from "@/modules/identity/domain/types";
+import { materialUnit } from "@/modules/material/domain/types";
 
 export const createMaterialSchema = z.object({
   name: requiredString("Name", 50),
