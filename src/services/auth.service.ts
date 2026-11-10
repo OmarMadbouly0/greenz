@@ -19,24 +19,32 @@ import { cityRepository } from "@/repositories/city.repository";
 import { withTransaction } from "@/infrastructure/database/prisma";
 
 export const authService = {
-  async registerUser(input: RegisterInput) {
+  async registerUser(input: RegisterInput, role: "customer" | "collector") {
     const emailExists = await userRepository.emailExists(input.email);
     if (emailExists) {
       throw new ConflictError("Email already exists");
     }
-    const passwordHash = await hashPassword(input.password);
 
     const city = await cityRepository.findById(input.address.cityId);
 
     if (!city) {
       throw new NotFoundError("City not found.");
     }
+    const passwordHash = await hashPassword(input.password);
 
     return withTransaction(async (tx) => {
+      await userRepository.lockEmail(tx, input.email);
+
+      const emailExists = await userRepository.emailExistsTx(tx, input.email);
+      if (emailExists) {
+        throw new ConflictError("Email already exists");
+      }
+
       const user = await userRepository.create(tx, {
         fullName: input.fullName,
         email: input.email,
         passwordHash: passwordHash,
+        role,
       });
 
       const address = await addressRepository.create(tx, user.id, {

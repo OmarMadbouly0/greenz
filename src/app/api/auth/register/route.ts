@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   try {
     const body = await readJsonBody(request);
     const input = parseInput(registerUserSchema, body);
-    const user = await authService.registerUser(input);
+    const user = await authService.registerUser(input, "customer");
     return apiOk({ user }, 201);
   } catch (error) {
     return handleRouteError(error);

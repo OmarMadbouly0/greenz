@@ -3,6 +3,7 @@ import { requireRole } from "@/modules/identity/application/guards";
 import { apiOk } from "../../../_shared/responses";
 import { handleRouteError } from "../../../_shared/route-errors";
 import { collectorService } from "@/services/collector.service";
+import { authService } from "@/services/auth.service";
 import { readJsonBody } from "../../../_shared/request-body";
 import { parseInput } from "@/shared/validation/parse-input";
 import { registerCollectorSchema } from "@/services/collector.schemas";
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
     const body = await readJsonBody(request);
     const input = parseInput(registerCollectorSchema, body);
-    const collector = await collectorService.registerCollector(input);
+    const collector = await authService.registerUser(input, "collector");
     return apiOk(collector, 201);
   } catch (error) {
     return handleRouteError(error);

@@ -32,12 +32,27 @@ export const userRepository = {
 
     return user !== null;
   },
+  async lockEmail(tx: Prisma.TransactionClient, email: string) {
+    await tx.$queryRaw`
+      SELECT 1
+      FROM pg_advisory_xact_lock(hashtextextended(${`user-email:${email}`}, 0))
+    `;
+  },
+  async emailExistsTx(tx: Prisma.TransactionClient, email: string) {
+    const user = await tx.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    return user !== null;
+  },
   async create(
     tx: Prisma.TransactionClient,
     input: {
       fullName: string;
       email: string;
       passwordHash: string;
+      role: "customer" | "collector";
     },
   ) {
     return tx.user.create({
@@ -45,7 +60,7 @@ export const userRepository = {
         full_name: input.fullName,
         email: input.email,
         password_hash: input.passwordHash,
-        role: "customer",
+        role: input.role,
       },
       select: {
         id: true,
@@ -55,30 +70,6 @@ export const userRepository = {
       },
     });
   },
-  async createCollector(
-    tx: Prisma.TransactionClient,
-    input: {
-      fullName: string;
-      email: string;
-      passwordHash: string;
-    },
-  ) {
-    return tx.user.create({
-      data: {
-        full_name: input.fullName,
-        email: input.email,
-        password_hash: input.passwordHash,
-        role: "collector",
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        role: true,
-      },
-    });
-  },
-
   async findByEmail(email: string) {
     return getPrisma().user.findUnique({
       where: { email },
