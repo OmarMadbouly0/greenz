@@ -1,5 +1,8 @@
 import { materialRepository } from "@/repositories/material.repository";
-import { NotFoundError } from "@/shared/errors/application-error";
+import {
+  ConflictError,
+  NotFoundError,
+} from "@/shared/errors/application-error";
 import { CreateMaterialInput, UpdateMaterialInput } from "./material.schemas";
 export const materialService = {
   async getMaterials() {
@@ -17,9 +20,22 @@ export const materialService = {
     return material;
   },
   async updateMaterial(materialId: number, input: UpdateMaterialInput) {
-    if (!(await materialRepository.getMaterialById(materialId))) {
+    const existingMaterial =
+      await materialRepository.getMaterialById(materialId);
+    if (!existingMaterial) {
       throw new NotFoundError(`Material not found.`);
     }
+
+    if (
+      input.name !== undefined &&
+      input.name !== existingMaterial.name &&
+      (await materialRepository.getMaterialByName(input.name))
+    ) {
+      throw new ConflictError(
+        `Material with name ${input.name} already exists.`,
+      );
+    }
+
     const material = await materialRepository.updateMaterial(materialId, input);
     if (!material) {
       throw new NotFoundError(`Material not found.`);
@@ -28,7 +44,7 @@ export const materialService = {
   },
   async createMaterial(input: CreateMaterialInput) {
     if (await materialRepository.getMaterialByName(input.name)) {
-      throw new NotFoundError(
+      throw new ConflictError(
         `Material with name ${input.name} already exists.`,
       );
     }
