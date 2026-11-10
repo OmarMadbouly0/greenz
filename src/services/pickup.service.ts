@@ -9,8 +9,8 @@ import { userRepository } from "@/repositories/user.repository";
 
 import {
   ConflictError,
+  ForbiddenError,
   NotFoundError,
-  UnauthorizedError,
 } from "@/shared/errors/application-error";
 import { walletRepository } from "@/repositories/wallet.repository";
 import { Prisma } from "@/../generated/prisma/client";
@@ -28,7 +28,7 @@ export const pickupService = {
     if (role === "collector") {
       return pickupRepository.getPickupsByCollectorId(userId);
     }
-    throw new UnauthorizedError("Invalid user role.");
+    throw new ForbiddenError("User does not have the required role.");
   },
   async getAllPickups(query: PickupListQuery) {
     const { items, total } = await pickupRepository.getAllPickups(query);
@@ -46,7 +46,7 @@ export const pickupService = {
     } else if (role === "admin") {
       pickup = await pickupRepository.getPickupById(pickupId);
     } else {
-      throw new UnauthorizedError("Invalid user role.");
+      throw new ForbiddenError("User does not have the required role.");
     }
 
     if (!pickup) {
