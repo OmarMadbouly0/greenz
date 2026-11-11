@@ -13,7 +13,7 @@ export async function PATCH(
   { params }: { params: Promise<{ pickupId: string }> },
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
 
     requireRole(currentUser, ["admin"]);
 

@@ -9,11 +9,11 @@ import { parseInput } from "@/shared/validation/parse-input";
 import { updatePickupStatusSchema } from "@/services/pickup.schemas";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ pickupId: string }> },
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
 
     requireRole(currentUser, ["customer", "collector", "admin"]);
 
@@ -30,7 +30,7 @@ export async function GET(
   }
 }
 export async function DELETE(
-  _request: Request,
+  request: Request,
   {
     params,
   }: {
@@ -38,7 +38,7 @@ export async function DELETE(
   },
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
     requireRole(currentUser, ["customer"]);
     const pickupId = parseId((await params).pickupId);
     const pickup = await pickupService.cancelPickup(currentUser.id, pickupId);
@@ -53,7 +53,7 @@ export async function PATCH(
   { params }: { params: Promise<{ pickupId: string }> },
 ) {
   try {
-    const currentCollector = await getCurrentUser();
+    const currentCollector = await getCurrentUser(request);
 
     requireRole(currentCollector, ["collector"]);
 

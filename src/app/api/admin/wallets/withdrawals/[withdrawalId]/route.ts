@@ -13,7 +13,7 @@ export async function PATCH(
   { params }: { params: Promise<{ withdrawalId: string }> },
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
     requireRole(currentUser, ["admin"]);
 
     const withdrawalId = parseId((await params).withdrawalId);

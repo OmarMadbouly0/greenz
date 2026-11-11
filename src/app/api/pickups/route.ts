@@ -10,7 +10,7 @@ import { paginationQuerySchema } from "@/shared/validation/pagination.schema";
 
 export async function GET(request: Request) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
     requireRole(currentUser, ["customer", "collector"]);
 
     const query = parseInput(
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
     requireRole(currentUser, ["customer"]);
 
     const body = await readJsonBody(request);

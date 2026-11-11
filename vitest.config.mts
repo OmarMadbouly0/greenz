@@ -1,7 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { configDefaults, defineConfig } from "vitest/config";
 
-const pickupHttpTests = "src/app/api/pickups/__tests__/*.integration.test.ts";
+const pickupRouteTests = [
+  "src/app/api/pickups/__tests__/*-route.integration.test.ts",
+  "src/app/api/admin/pickups/__tests__/*-route.integration.test.ts",
+  "src/app/api/wallet/withdrawals/__tests__/*-route.integration.test.ts",
+];
 
 export default defineConfig({
   resolve: {
@@ -17,19 +21,19 @@ export default defineConfig({
         extends: true,
         test: {
           name: "application",
-          exclude: [...configDefaults.exclude, pickupHttpTests],
+          exclude: [...configDefaults.exclude, ...pickupRouteTests],
         },
       },
       {
         extends: true,
         test: {
-          name: "pickup-http",
-          include: [pickupHttpTests],
-          // These files share one server and reset the same disposable database.
-          fileParallelism: false,
-          maxWorkers: 1,
+          name: "pickup-route",
+          include: pickupRouteTests,
+          // Projects with different worker limits need separate execution groups.
+          sequence: { groupOrder: 1 },
+          // Each suite owns a PostgreSQL container; bound local Docker load.
+          maxWorkers: 3,
           testTimeout: 30_000,
-          globalSetup: ["tests/pickup-http.global-setup.ts"],
         },
       },
     ],

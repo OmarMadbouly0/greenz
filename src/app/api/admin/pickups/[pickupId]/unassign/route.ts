@@ -6,11 +6,11 @@ import { apiOk } from "@/app/api/_shared/responses";
 import { handleRouteError } from "@/app/api/_shared/route-errors";
 
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ pickupId: string }> },
 ) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
 
     requireRole(currentUser, ["admin"]);
 

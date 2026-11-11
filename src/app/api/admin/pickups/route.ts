@@ -12,7 +12,7 @@ export async function GET(request: Request) {
       pickupListQuerySchema,
       Object.fromEntries(new URL(request.url).searchParams),
     );
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
     requireRole(currentUser, ["admin"]);
 
     const pickups = await pickupService.getAllPickups(query);
