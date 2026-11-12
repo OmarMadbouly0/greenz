@@ -6,25 +6,31 @@ import {
 import { requiredEmail } from "@/shared/validation/field";
 import { requiredId } from "@/shared/validation/field";
 import { z } from "zod";
-export const registerUserSchema = z.object({
-  fullName: requiredString("Full name", 50),
-  email: requiredEmail(),
-  password: requiredString("Password", 20, 8),
-  address: z.object({
-    cityId: requiredId("City"),
-    street: requiredString("Street", 50),
-    building: requiredString("Building", 50),
-    apartment: optionalText("Apartment", 50),
-    floor: optionalText("Floor", 50),
-  }).strict(),
-}).strict();
+export const registerUserSchema = z
+  .object({
+    fullName: requiredString("Full name", 50),
+    email: requiredEmail(),
+    password: requiredString("Password", 20, 8),
+    address: z
+      .object({
+        cityId: requiredId("City"),
+        street: requiredString("Street", 50),
+        building: requiredString("Building", 50),
+        apartment: optionalText("Apartment", 50),
+        floor: optionalText("Floor", 50),
+      })
+      .strict(),
+  })
+  .strict();
 
 export type RegisterInput = z.output<typeof registerUserSchema>;
 
-export const loginUserSchema = z.object({
-  email: requiredEmail(),
-  password: requiredString("Password", 20, 8),
-}).strict();
+export const loginUserSchema = z
+  .object({
+    email: requiredEmail(),
+    password: requiredString("Password", 20, 8),
+  })
+  .strict();
 
 export type LoginInput = z.output<typeof loginUserSchema>;
 

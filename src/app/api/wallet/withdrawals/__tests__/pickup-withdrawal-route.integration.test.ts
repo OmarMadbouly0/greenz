@@ -33,7 +33,7 @@ const originalDatabaseUrl = process.env.DATABASE_URL;
 
 const originalJwtSecret = process.env.JWT_SECRET;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const originalClient = globalForPrisma.prisma;
 
@@ -82,9 +82,12 @@ afterAll(async () => {
 
 function jsonValue(value: unknown): unknown {
   if (value === null || typeof value !== "object") return value;
-  if ("toJSON" in value && typeof value.toJSON === "function") return value.toJSON();
+  if ("toJSON" in value && typeof value.toJSON === "function")
+    return value.toJSON();
   if (Array.isArray(value)) return value.map(jsonValue);
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, jsonValue(item)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, jsonValue(item)]),
+  );
 }
 
 async function contendOnRow(
@@ -97,25 +100,35 @@ async function contendOnRow(
   const pending: Promise<PromiseSettledResult<Response>>[] = [];
   try {
     await blocker.query("BEGIN");
-    await blocker.query(`SELECT id FROM ${table} WHERE id = $1 FOR UPDATE`, [id]);
+    await blocker.query(`SELECT id FROM ${table} WHERE id = $1 FOR UPDATE`, [
+      id,
+    ]);
     for (const operation of operations) {
-      pending.push(operation().then(
-        (value) => ({ status: "fulfilled" as const, value }),
-        (reason: unknown) => ({ status: "rejected" as const, reason }),
-      ));
+      pending.push(
+        operation().then(
+          (value) => ({ status: "fulfilled" as const, value }),
+          (reason: unknown) => ({ status: "rejected" as const, reason }),
+        ),
+      );
       const deadline = performance.now() + 2000;
       let blocked = false;
       while (performance.now() < deadline) {
-        const result = await control.query<{ count: number; }>(`
+        const result = await control.query<{ count: number }>(`
           SELECT count(*)::int AS count FROM pg_stat_activity
           WHERE datname = current_database()
             AND wait_event_type = 'Lock'
             AND cardinality(pg_blocking_pids(pid)) > 0
         `);
-        if (result.rows[0].count >= pending.length) { blocked = true; break; }
+        if (result.rows[0].count >= pending.length) {
+          blocked = true;
+          break;
+        }
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
-      if (!blocked) throw new Error(`Expected ${pending.length} requests waiting on the ${table} row lock`);
+      if (!blocked)
+        throw new Error(
+          `Expected ${pending.length} requests waiting on the ${table} row lock`,
+        );
     }
     await blocker.query("COMMIT");
     return (await Promise.all(pending)).map((outcome) => {
@@ -123,8 +136,12 @@ async function contendOnRow(
       return outcome.value;
     });
   } finally {
-    try { await blocker.query("ROLLBACK"); }
-    finally { blocker.release(); await Promise.all(pending); }
+    try {
+      await blocker.query("ROLLBACK");
+    } finally {
+      blocker.release();
+      await Promise.all(pending);
+    }
   }
 }
 
@@ -140,32 +157,72 @@ let otherWalletId: number;
 
 const destinationPhone = "01000000000";
 
-type LedgerEntry = { type: "payout" | "withdrawal" | "refund"; amount: string; pickupId?: number; withdrawalId?: number; };
+type LedgerEntry = {
+  type: "payout" | "withdrawal" | "refund";
+  amount: string;
+  pickupId?: number;
+  withdrawalId?: number;
+};
 
-function makeRequest(path: string, method: string, userId: number, body: unknown) {
-  return new Request(`http://localhost${path}`, { method, headers: { cookie: `token=${generateToken(userId)}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+function makeRequest(
+  path: string,
+  method: string,
+  userId: number,
+  body: unknown,
+) {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: {
+      cookie: `token=${generateToken(userId)}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
 }
 
-function updatePayoutStatus(id: number, input: { status: string; }) {
-  return payoutRoute(makeRequest(`/api/admin/pickups/${id}/payout`, "PATCH", adminId, input), { params: Promise.resolve({ pickupId: String(id) }) });
+function updatePayoutStatus(id: number, input: { status: string }) {
+  return payoutRoute(
+    makeRequest(`/api/admin/pickups/${id}/payout`, "PATCH", adminId, input),
+    { params: Promise.resolve({ pickupId: String(id) }) },
+  );
 }
 
-function createWithdrawal(userId: number, input: { amount: number; destinationPhone: string; }) {
-  return withdrawalRoute(makeRequest("/api/wallet/withdrawals", "POST", userId, input));
+function createWithdrawal(
+  userId: number,
+  input: { amount: number; destinationPhone: string },
+) {
+  return withdrawalRoute(
+    makeRequest("/api/wallet/withdrawals", "POST", userId, input),
+  );
 }
 
-function updateWithdrawalStatus(userId: number, id: number, input: { status: string; }) {
-  return withdrawalStatusRoute(makeRequest(`/api/admin/wallets/withdrawals/${id}`, "PATCH", userId, input), { params: Promise.resolve({ withdrawalId: String(id) }) });
+function updateWithdrawalStatus(
+  userId: number,
+  id: number,
+  input: { status: string },
+) {
+  return withdrawalStatusRoute(
+    makeRequest(`/api/admin/wallets/withdrawals/${id}`, "PATCH", userId, input),
+    { params: Promise.resolve({ withdrawalId: String(id) }) },
+  );
 }
 
 async function contend(operations: (() => Promise<Response>)[]) {
-  const responses = await contendOnRow(control, "wallets", walletId, operations);
+  const responses = await contendOnRow(
+    control,
+    "wallets",
+    walletId,
+    operations,
+  );
   for (const response of responses) {
     if (!response.ok) continue;
     const body = await response.clone().json();
-    const saved = "payout_status" in body
-      ? await prisma.pickup.findUniqueOrThrow({ where: { id: body.id } })
-      : await prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: body.id } });
+    const saved =
+      "payout_status" in body
+        ? await prisma.pickup.findUniqueOrThrow({ where: { id: body.id } })
+        : await prisma.withdrawalRequest.findUniqueOrThrow({
+            where: { id: body.id },
+          });
     expect(body).toEqual(jsonValue(saved));
   }
   return responses;
@@ -173,7 +230,6 @@ async function contend(operations: (() => Promise<Response>)[]) {
 
 describe("Direct payout and withdrawal routes competing for wallet funds", () => {
   beforeEach(async () => {
-
     await prisma.walletTransaction.deleteMany();
     await prisma.withdrawalRequest.deleteMany();
     await prisma.pickupItem.deleteMany();
@@ -467,7 +523,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
     ]);
 
     expect(results[0].status).toBe(409);
-    expect(await results[0].json()).toEqual({ error: "Insufficient wallet balance." });
+    expect(await results[0].json()).toEqual({
+      error: "Insufficient wallet balance.",
+    });
 
     expect(results[1].status).toBe(200);
     expect(await prisma.withdrawalRequest.count()).toBe(0);
@@ -534,7 +592,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
     expect(results[1].status).toBe(201);
 
     expect(results[2].status).toBe(409);
-    expect(await results[2].json()).toEqual({ error: "Payout has already been done." });
+    expect(await results[2].json()).toEqual({
+      error: "Payout has already been done.",
+    });
 
     const withdrawals = await prisma.withdrawalRequest.findMany();
     expect(withdrawals).toHaveLength(1);
@@ -610,7 +670,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
     expect(results[1].status).toBe(200);
 
     expect(results[2].status).toBe(409);
-    expect(await results[2].json()).toEqual({ error: "Insufficient wallet balance." });
+    expect(await results[2].json()).toEqual({
+      error: "Insufficient wallet balance.",
+    });
 
     const withdrawals = await prisma.withdrawalRequest.findMany();
     expect(withdrawals).toHaveLength(1);
@@ -665,9 +727,12 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
   });
 
   it("refunds a withdrawal only once while a pickup payout commits", async () => {
-    const withdrawalResponse = await createWithdrawal(customerId, { amount: 200, destinationPhone });
+    const withdrawalResponse = await createWithdrawal(customerId, {
+      amount: 200,
+      destinationPhone,
+    });
     expect(withdrawalResponse.status).toBe(201);
-    const withdrawal: { id: number; } = await withdrawalResponse.json();
+    const withdrawal: { id: number } = await withdrawalResponse.json();
     const refund = () =>
       updateWithdrawalStatus(adminId, withdrawal.id, {
         status: "cancelled",
@@ -681,7 +746,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
     expect(results[1].status).toBe(200);
 
     expect(results[2].status).toBe(409);
-    expect(await results[2].json()).toEqual({ error: "Withdrawal has already been handled." });
+    expect(await results[2].json()).toEqual({
+      error: "Withdrawal has already been handled.",
+    });
 
     expect(
       await prisma.withdrawalRequest.findUniqueOrThrow({
@@ -767,7 +834,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
         }),
     ]);
     expect(results[0].status).toBe(500);
-    expect(await results[0].json()).toEqual({ error: "Internal server error." });
+    expect(await results[0].json()).toEqual({
+      error: "Internal server error.",
+    });
     expect(results[1].status).toBe(201);
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -819,10 +888,15 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
   });
 
   it("rolls back a failed refund increment while preserving a concurrent payout", async () => {
-    const withdrawalResponse = await createWithdrawal(customerId, { amount: 200, destinationPhone });
+    const withdrawalResponse = await createWithdrawal(customerId, {
+      amount: 200,
+      destinationPhone,
+    });
     expect(withdrawalResponse.status).toBe(201);
-    const withdrawal: { id: number; } = await withdrawalResponse.json();
-    const withdrawalBefore = await prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawal.id } });
+    const withdrawal: { id: number } = await withdrawalResponse.json();
+    const withdrawalBefore = await prisma.withdrawalRequest.findUniqueOrThrow({
+      where: { id: withdrawal.id },
+    });
     // This conflict makes refund ledger insertion fail after the wallet increment.
     const existing = await prisma.walletTransaction.create({
       data: {
@@ -841,7 +915,9 @@ describe("Direct payout and withdrawal routes competing for wallet funds", () =>
       () => updatePayoutStatus(pickupId, { status: "paid" }),
     ]);
     expect(results[0].status).toBe(500);
-    expect(await results[0].json()).toEqual({ error: "Internal server error." });
+    expect(await results[0].json()).toEqual({
+      error: "Internal server error.",
+    });
     expect(results[1].status).toBe(200);
     expect(
       await prisma.withdrawalRequest.findUniqueOrThrow({

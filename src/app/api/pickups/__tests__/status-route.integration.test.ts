@@ -27,13 +27,11 @@ let serviceClient: PrismaClient | undefined;
 
 let control: Pool;
 
-
-
 const originalDatabaseUrl = process.env.DATABASE_URL;
 
 const originalJwtSecret = process.env.JWT_SECRET;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const originalClient = globalForPrisma.prisma;
 
@@ -91,9 +89,12 @@ beforeEach(async () => {
 
 function jsonValue(value: unknown): unknown {
   if (value === null || typeof value !== "object") return value;
-  if ("toJSON" in value && typeof value.toJSON === "function") return value.toJSON();
+  if ("toJSON" in value && typeof value.toJSON === "function")
+    return value.toJSON();
   if (Array.isArray(value)) return value.map(jsonValue);
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, jsonValue(item)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, jsonValue(item)]),
+  );
 }
 
 async function contendOnRow(
@@ -106,25 +107,35 @@ async function contendOnRow(
   const pending: Promise<PromiseSettledResult<Response>>[] = [];
   try {
     await blocker.query("BEGIN");
-    await blocker.query(`SELECT id FROM ${table} WHERE id = $1 FOR UPDATE`, [id]);
+    await blocker.query(`SELECT id FROM ${table} WHERE id = $1 FOR UPDATE`, [
+      id,
+    ]);
     for (const operation of operations) {
-      pending.push(operation().then(
-        (value) => ({ status: "fulfilled" as const, value }),
-        (reason: unknown) => ({ status: "rejected" as const, reason }),
-      ));
+      pending.push(
+        operation().then(
+          (value) => ({ status: "fulfilled" as const, value }),
+          (reason: unknown) => ({ status: "rejected" as const, reason }),
+        ),
+      );
       const deadline = performance.now() + 2000;
       let blocked = false;
       while (performance.now() < deadline) {
-        const result = await control.query<{ count: number; }>(`
+        const result = await control.query<{ count: number }>(`
           SELECT count(*)::int AS count FROM pg_stat_activity
           WHERE datname = current_database()
             AND wait_event_type = 'Lock'
             AND cardinality(pg_blocking_pids(pid)) > 0
         `);
-        if (result.rows[0].count >= pending.length) { blocked = true; break; }
+        if (result.rows[0].count >= pending.length) {
+          blocked = true;
+          break;
+        }
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
-      if (!blocked) throw new Error(`Expected ${pending.length} requests waiting on the ${table} row lock`);
+      if (!blocked)
+        throw new Error(
+          `Expected ${pending.length} requests waiting on the ${table} row lock`,
+        );
     }
     await blocker.query("COMMIT");
     return (await Promise.all(pending)).map((outcome) => {
@@ -132,22 +143,49 @@ async function contendOnRow(
       return outcome.value;
     });
   } finally {
-    try { await blocker.query("ROLLBACK"); }
-    finally { blocker.release(); await Promise.all(pending); }
+    try {
+      await blocker.query("ROLLBACK");
+    } finally {
+      blocker.release();
+      await Promise.all(pending);
+    }
   }
 }
 
-function makeRequest(method: string, pickupId: number, userId: number, body?: unknown, payout = false) {
-  return new Request(`http://localhost/api/${payout ? "admin/" : ""}pickups/${pickupId}${payout ? "/payout" : ""}`, {
-    method,
-    headers: { cookie: `token=${generateToken(userId)}`, "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+function makeRequest(
+  method: string,
+  pickupId: number,
+  userId: number,
+  body?: unknown,
+  payout = false,
+) {
+  return new Request(
+    `http://localhost/api/${payout ? "admin/" : ""}pickups/${pickupId}${payout ? "/payout" : ""}`,
+    {
+      method,
+      headers: {
+        cookie: `token=${generateToken(userId)}`,
+        "content-type": "application/json",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    },
+  );
 }
 
-function context(pickupId: number) { return { params: Promise.resolve({ pickupId: String(pickupId) }) }; }
+function context(pickupId: number) {
+  return { params: Promise.resolve({ pickupId: String(pickupId) }) };
+}
 
-function updatePickupStatus(userId: number, pickupId: number, input: { status: string; }) { return statusRoute(makeRequest("PATCH", pickupId, userId, input), context(pickupId)); }
+function updatePickupStatus(
+  userId: number,
+  pickupId: number,
+  input: { status: string },
+) {
+  return statusRoute(
+    makeRequest("PATCH", pickupId, userId, input),
+    context(pickupId),
+  );
+}
 
 describe("Direct pickup status routes (service scenario parity)", () => {
   it("moves an assigned pickup to on_the_way", async () => {
@@ -201,7 +239,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       include: { items: true },
     });
 
-    const resultResponse = await updatePickupStatus(collector.id, before.id, { status: "on_the_way" });
+    const resultResponse = await updatePickupStatus(collector.id, before.id, {
+      status: "on_the_way",
+    });
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
     const saved = await prisma.pickup.findUniqueOrThrow({
@@ -212,7 +252,8 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     expect(saved).toEqual({
       ...before,
       status: "on_the_way",
-      updated_at: result.updated_at === null ? null : new Date(result.updated_at),
+      updated_at:
+        result.updated_at === null ? null : new Date(result.updated_at),
     });
     const { items, ...savedFields } = saved;
     expect(result).toEqual(jsonValue(savedFields));
@@ -273,7 +314,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       },
       include: { items: true },
     });
-    const resultResponse = await updatePickupStatus(collector.id, before.id, { status: "arrived" });
+    const resultResponse = await updatePickupStatus(collector.id, before.id, {
+      status: "arrived",
+    });
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
     const saved = await prisma.pickup.findUniqueOrThrow({
@@ -284,7 +327,8 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     expect(saved).toEqual({
       ...before,
       status: "arrived",
-      updated_at: result.updated_at === null ? null : new Date(result.updated_at),
+      updated_at:
+        result.updated_at === null ? null : new Date(result.updated_at),
     });
     const { items, ...savedFields } = saved;
     expect(result).toEqual(jsonValue(savedFields));
@@ -347,7 +391,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     });
 
     const started = Date.now();
-    const resultResponse = await updatePickupStatus(collector.id, before.id, { status: "completed" });
+    const resultResponse = await updatePickupStatus(collector.id, before.id, {
+      status: "completed",
+    });
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
     const ended = Date.now();
@@ -355,7 +401,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     if (result.completed_at === null) {
       throw new Error("Expected the pickup completion time to be recorded.");
     }
-    expect(new Date(result.completed_at).getTime()).toBeGreaterThanOrEqual(started);
+    expect(new Date(result.completed_at).getTime()).toBeGreaterThanOrEqual(
+      started,
+    );
     expect(new Date(result.completed_at).getTime()).toBeLessThanOrEqual(ended);
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
@@ -365,8 +413,10 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     expect(saved).toEqual({
       ...before,
       status: "completed",
-      completed_at: result.completed_at === null ? null : new Date(result.completed_at),
-      updated_at: result.updated_at === null ? null : new Date(result.updated_at),
+      completed_at:
+        result.completed_at === null ? null : new Date(result.completed_at),
+      updated_at:
+        result.updated_at === null ? null : new Date(result.updated_at),
     });
     const { items, ...savedFields } = saved;
     expect(result).toEqual(jsonValue(savedFields));
@@ -436,7 +486,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       include: { items: true },
     });
 
-    const update = updatePickupStatus(otherCollector.id, before.id, { status: "on_the_way" });
+    const update = updatePickupStatus(otherCollector.id, before.id, {
+      status: "on_the_way",
+    });
     expect((await update).status).toBe(404);
     expect(await (await update).json()).toEqual({ error: "Pickup not found." });
 
@@ -581,7 +633,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     });
     await prisma.pickup.delete({ where: { id: deletedPickup.id } });
 
-    const update = updatePickupStatus(collector.id, deletedPickup.id, { status: "on_the_way" });
+    const update = updatePickupStatus(collector.id, deletedPickup.id, {
+      status: "on_the_way",
+    });
     expect((await update).status).toBe(404);
     expect(await (await update).json()).toEqual({ error: "Pickup not found." });
 
@@ -655,7 +709,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "arrived",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from assigned to on_the_way." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from assigned to on_the_way.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -724,7 +780,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "completed",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from assigned to on_the_way." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from assigned to on_the_way.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -793,7 +851,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "completed",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from on_the_way to arrived." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from on_the_way to arrived.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -862,7 +922,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "on_the_way",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from arrived to completed." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from arrived to completed.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -931,7 +993,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "on_the_way",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from on_the_way to arrived." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from on_the_way to arrived.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -1000,7 +1064,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "arrived",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup must move from arrived to completed." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup must move from arrived to completed.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -1070,7 +1136,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "completed",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup has already been handled." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup has already been handled.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -1140,7 +1208,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
       status: "on_the_way",
     });
     expect((await update).status).toBe(409);
-    expect(await (await update).json()).toEqual({ error: "Pickup has already been handled." });
+    expect(await (await update).json()).toEqual({
+      error: "Pickup has already been handled.",
+    });
 
     expect(
       await prisma.pickup.findUniqueOrThrow({
@@ -1206,20 +1276,20 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     });
 
     const started = Date.now();
-    const results = await contendOnRow(control, "pickups", before.id, [() => updatePickupStatus(collector.id, before.id, {
-      status: "completed",
-    }),
-    () => updatePickupStatus(collector.id, before.id, {
-      status: "completed",
-    })]);
+    const results = await contendOnRow(control, "pickups", before.id, [
+      () =>
+        updatePickupStatus(collector.id, before.id, {
+          status: "completed",
+        }),
+      () =>
+        updatePickupStatus(collector.id, before.id, {
+          status: "completed",
+        }),
+    ]);
     const ended = Date.now();
 
-    expect(
-      results.filter((result) => result.status === 200),
-    ).toHaveLength(1);
-    expect(
-      results.filter((result) => result.status !== 200),
-    ).toHaveLength(1);
+    expect(results.filter((result) => result.status === 200)).toHaveLength(1);
+    expect(results.filter((result) => result.status !== 200)).toHaveLength(1);
     const success = results.find((result) => result.status === 200);
     const failure = results.find((result) => result.status !== 200);
     if (!success || !failure) {
@@ -1227,7 +1297,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     }
     expect(failure.status).toBe(409);
     const successBody = await success.json();
-    expect(await failure.json()).toEqual({ error: "Pickup has already been handled." });
+    expect(await failure.json()).toEqual({
+      error: "Pickup has already been handled.",
+    });
     expect(successBody.completed_at).toEqual(expect.any(String));
     if (successBody.completed_at === null) {
       throw new Error("Expected the pickup completion time to be recorded.");
@@ -1235,7 +1307,9 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     expect(new Date(successBody.completed_at).getTime()).toBeGreaterThanOrEqual(
       started,
     );
-    expect(new Date(successBody.completed_at).getTime()).toBeLessThanOrEqual(ended);
+    expect(new Date(successBody.completed_at).getTime()).toBeLessThanOrEqual(
+      ended,
+    );
 
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: before.id },
@@ -1244,8 +1318,14 @@ describe("Direct pickup status routes (service scenario parity)", () => {
     expect(saved).toEqual({
       ...before,
       status: "completed",
-      completed_at: successBody.completed_at === null ? null : new Date(successBody.completed_at),
-      updated_at: successBody.updated_at === null ? null : new Date(successBody.updated_at),
+      completed_at:
+        successBody.completed_at === null
+          ? null
+          : new Date(successBody.completed_at),
+      updated_at:
+        successBody.updated_at === null
+          ? null
+          : new Date(successBody.updated_at),
     });
     const { items, ...savedFields } = saved;
     expect(successBody).toEqual(jsonValue(savedFields));

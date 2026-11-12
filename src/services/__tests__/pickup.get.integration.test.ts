@@ -455,7 +455,11 @@ describe("PickupService read methods", () => {
       },
     });
 
-    const result = await pickupService.getPickupById(admin.id, "admin", pickup.id);
+    const result = await pickupService.getPickupById(
+      admin.id,
+      "admin",
+      pickup.id,
+    );
 
     expect(result).toEqual({
       id: pickup.id,
@@ -549,7 +553,9 @@ describe("PickupService read methods", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items).toEqual([newerPickup, olderPickup]);
-    expect(result.items.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(
+      otherPickup.id,
+    );
   });
 
   it("returns only pickups assigned to the collector", async () => {
@@ -619,8 +625,12 @@ describe("PickupService read methods", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items).toEqual([newerPickup, olderPickup]);
-    expect(result.items.map((pickup) => pickup.id)).not.toContain(otherPickup.id);
-    expect(result.items.map((pickup) => pickup.id)).not.toContain(unassignedPickup.id);
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(
+      otherPickup.id,
+    );
+    expect(result.items.map((pickup) => pickup.id)).not.toContain(
+      unassignedPickup.id,
+    );
   });
 
   it("returns the second page of all pickups with the total count and page count", async () => {
@@ -658,25 +668,27 @@ describe("PickupService read methods", () => {
     const result = await pickupService.getAllPickups({ page: 2, pageSize: 2 });
 
     expect(result).toEqual({
-      items: [{
-        id: oldestPickup.id,
-        status: oldestPickup.status,
-        note: oldestPickup.note,
-        payout: oldestPickup.payout,
-        payout_status: oldestPickup.payout_status,
-        requested_at: oldestPickup.requested_at,
-        completed_at: oldestPickup.completed_at,
-        cancelled_at: oldestPickup.cancelled_at,
-        created_at: oldestPickup.created_at,
-        updated_at: oldestPickup.updated_at,
-        customer: {
-          id: customer.id,
-          full_name: customer.full_name,
-          email: customer.email,
+      items: [
+        {
+          id: oldestPickup.id,
+          status: oldestPickup.status,
+          note: oldestPickup.note,
+          payout: oldestPickup.payout,
+          payout_status: oldestPickup.payout_status,
+          requested_at: oldestPickup.requested_at,
+          completed_at: oldestPickup.completed_at,
+          cancelled_at: oldestPickup.cancelled_at,
+          created_at: oldestPickup.created_at,
+          updated_at: oldestPickup.updated_at,
+          customer: {
+            id: customer.id,
+            full_name: customer.full_name,
+            email: customer.email,
+          },
+          collector: null,
+          items: [],
         },
-        collector: null,
-        items: [],
-      }],
+      ],
       page: 2,
       pageSize: 2,
       total: 3,
@@ -792,7 +804,11 @@ describe("PickupService read methods", () => {
             quantity: plasticPickup.items[0].quantity,
             price_per_unit: plasticPickup.items[0].price_per_unit,
             note: "Empty bottles only.",
-            material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
+            material: {
+              id: plastic.id,
+              name: "Plastic bottles",
+              unit: "piece",
+            },
           },
         ],
       },
@@ -876,22 +892,24 @@ describe("PickupService read methods", () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0].id).toBe(pickup.id);
     expect(result.items[0].items).toHaveLength(2);
-    expect(result.items[0].items).toEqual(expect.arrayContaining([
-      {
-        id: paperItem.id,
-        quantity: paperItem.quantity,
-        price_per_unit: paperItem.price_per_unit,
-        note: "Dry paper only.",
-        material: { id: paper.id, name: "Paper", unit: "kg" },
-      },
-      {
-        id: plasticItem.id,
-        quantity: plasticItem.quantity,
-        price_per_unit: plasticItem.price_per_unit,
-        note: "Empty bottles only.",
-        material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
-      },
-    ]));
+    expect(result.items[0].items).toEqual(
+      expect.arrayContaining([
+        {
+          id: paperItem.id,
+          quantity: paperItem.quantity,
+          price_per_unit: paperItem.price_per_unit,
+          note: "Dry paper only.",
+          material: { id: paper.id, name: "Paper", unit: "kg" },
+        },
+        {
+          id: plasticItem.id,
+          quantity: plasticItem.quantity,
+          price_per_unit: plasticItem.price_per_unit,
+          note: "Empty bottles only.",
+          material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
+        },
+      ]),
+    );
   });
 
   it("returns only pickups matching the status and counts only matching pickups", async () => {

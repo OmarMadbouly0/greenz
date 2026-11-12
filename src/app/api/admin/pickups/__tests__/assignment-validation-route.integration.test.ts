@@ -30,7 +30,7 @@ const originalDatabaseUrl = process.env.DATABASE_URL;
 
 const originalJwtSecret = process.env.JWT_SECRET;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const originalClient = globalForPrisma.prisma;
 
@@ -54,16 +54,11 @@ beforeAll(async () => {
   });
   await prisma.$connect();
   serviceClient = getPrisma();
-
 }, 180_000);
 
 afterAll(async () => {
   try {
-    await Promise.all([
-      prisma?.$disconnect(),
-      serviceClient?.$disconnect(),
-
-    ]);
+    await Promise.all([prisma?.$disconnect(), serviceClient?.$disconnect()]);
   } finally {
     try {
       await container?.stop();
@@ -77,9 +72,11 @@ afterAll(async () => {
   }
 });
 
-type Actor = "customer" | "otherCustomer" | "collector" | "otherCollector" | "admin";
+type Actor =
+  "customer" | "otherCustomer" | "collector" | "otherCollector" | "admin";
 
-type PickupState = "pending" | "assigned" | "on_the_way" | "arrived" | "completed" | "cancelled";
+type PickupState =
+  "pending" | "assigned" | "on_the_way" | "arrived" | "completed" | "cancelled";
 
 const baseUrl = "http://localhost";
 
@@ -93,13 +90,29 @@ let pickupId: number;
 
 let materialId: number;
 
-function makeRequest(method: string, path: string, cookie?: string, body?: unknown) {
-  return new Request(`http://localhost${path}`, { method, headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+function makeRequest(
+  method: string,
+  path: string,
+  cookie?: string,
+  body?: unknown,
+) {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }
 
 function contextForPath(path: string) {
   const segments = new URL(path, "http://localhost").pathname.split("/");
-  return { params: Promise.resolve({ pickupId: segments[segments.indexOf("pickups") + 1] }) };
+  return {
+    params: Promise.resolve({
+      pickupId: segments[segments.indexOf("pickups") + 1],
+    }),
+  };
 }
 
 async function snapshot() {
@@ -190,9 +203,7 @@ beforeEach(async () => {
 }, 90_000);
 
 describe("Pickup assignment and unassignment", () => {
-
   it("rejects malformed JSON and invalid bodies on collector assignment", async () => {
-
     const endpoint = {
       handler: assign,
       method: "PATCH",
@@ -205,9 +216,18 @@ describe("Pickup assignment and unassignment", () => {
     } as const;
     for (const body of [null, [], ...endpoint.invalid]) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
-      const field = body === null || Array.isArray(body) ? "input" : "collectorId";
+      const field =
+        body === null || Array.isArray(body) ? "input" : "collectorId";
       expect(await response.json()).toEqual({
         error: "Invalid input",
         errors: { [field]: expect.any(String) },
@@ -216,15 +236,18 @@ describe("Pickup assignment and unassignment", () => {
     }
     for (const body of ["{", ""]) {
       const before = await snapshot();
-      const response = await assign(new Request(`${baseUrl}${endpoint.path}`, {
-        method: endpoint.method,
-        headers: {
-          cookie: cookies[endpoint.actor],
-          "content-type": "application/json",
-        },
-        body,
-        signal: AbortSignal.timeout(60_000),
-      }), contextForPath(endpoint.path));
+      const response = await assign(
+        new Request(`${baseUrl}${endpoint.path}`, {
+          method: endpoint.method,
+          headers: {
+            cookie: cookies[endpoint.actor],
+            "content-type": "application/json",
+          },
+          body,
+          signal: AbortSignal.timeout(60_000),
+        }),
+        contextForPath(endpoint.path),
+      );
       expect(response.status).toBe(400);
       expect(await response.json()).toEqual({
         error: "Request body must be valid JSON.",
@@ -234,12 +257,14 @@ describe("Pickup assignment and unassignment", () => {
   }, 30_000);
 
   it("allows assignment of a pending pickup and rejects repeats or replacement", async () => {
-
     await seedState("pending");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       id: pickupId,
@@ -260,16 +285,22 @@ describe("Pickup assignment and unassignment", () => {
     });
     {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+      const response = await assign(
+        makeRequest("PATCH", path, cookies.admin, body),
+        contextForPath(path),
+      );
       expect(response.status, `PATCH ${path}`).toBe(409);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", path, cookies.admin, {
-        collectorId: users.otherCollector,
-      }), contextForPath(path));
+      const response = await assign(
+        makeRequest("PATCH", path, cookies.admin, {
+          collectorId: users.otherCollector,
+        }),
+        contextForPath(path),
+      );
       expect(response.status, `PATCH ${path}`).toBe(409);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -277,76 +308,93 @@ describe("Pickup assignment and unassignment", () => {
   });
 
   it("rejects assignment of an already assigned pickup", async () => {
-
     await seedState("assigned");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
 
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects assignment of an on_the_way pickup", async () => {
-
     await seedState("on_the_way");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
 
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects assignment of an arrived pickup", async () => {
-
     await seedState("arrived");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
 
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects assignment of a completed pickup", async () => {
-
     await seedState("completed");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
 
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects assignment of a cancelled pickup", async () => {
-
     await seedState("cancelled");
     const path = `/api/admin/pickups/${pickupId}/assign`;
     const body = { collectorId: users.collector };
 
     const before = await snapshot();
-    const response = await assign(makeRequest("PATCH", path, cookies.admin, body), contextForPath(path));
+    const response = await assign(
+      makeRequest("PATCH", path, cookies.admin, body),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("returns 404 when assigning to a missing user or a non-collector", async () => {
-
     await seedState("pending");
     for (const collectorId of [2147483647, users.customer, users.admin]) {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", `/api/admin/pickups/${pickupId}/assign`, cookies.admin, { collectorId }), contextForPath(`/api/admin/pickups/${pickupId}/assign`));
+      const response = await assign(
+        makeRequest(
+          "PATCH",
+          `/api/admin/pickups/${pickupId}/assign`,
+          cookies.admin,
+          { collectorId },
+        ),
+        contextForPath(`/api/admin/pickups/${pickupId}/assign`),
+      );
       expect(
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
@@ -357,23 +405,27 @@ describe("Pickup assignment and unassignment", () => {
   });
 
   it("rejects unassignment of a pending pickup", async () => {
-
     await seedState("pending");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
 
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin, undefined), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin, undefined),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("allows unassignment of an assigned pickup and revokes collector access", async () => {
-
     await seedState("assigned");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin),
+      contextForPath(path),
+    );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       id: pickupId,
@@ -393,21 +445,32 @@ describe("Pickup assignment and unassignment", () => {
     });
     {
       const before = await snapshot();
-      const response = await unassign(makeRequest("PATCH", path, cookies.admin), contextForPath(path));
+      const response = await unassign(
+        makeRequest("PATCH", path, cookies.admin),
+        contextForPath(path),
+      );
       expect(response.status, `PATCH ${path}`).toBe(409);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await pickup.GET(makeRequest("GET", `/api/pickups/${pickupId}`, cookies.collector), contextForPath(`/api/pickups/${pickupId}`));
+      const response = await pickup.GET(
+        makeRequest("GET", `/api/pickups/${pickupId}`, cookies.collector),
+        contextForPath(`/api/pickups/${pickupId}`),
+      );
       expect(response.status, `GET ${`/api/pickups/${pickupId}`}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await pickup.PATCH(makeRequest("PATCH", `/api/pickups/${pickupId}`, cookies.collector, { status: "on_the_way" }), contextForPath(`/api/pickups/${pickupId}`));
+      const response = await pickup.PATCH(
+        makeRequest("PATCH", `/api/pickups/${pickupId}`, cookies.collector, {
+          status: "on_the_way",
+        }),
+        contextForPath(`/api/pickups/${pickupId}`),
+      );
       expect(response.status, `PATCH ${`/api/pickups/${pickupId}`}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -415,48 +478,56 @@ describe("Pickup assignment and unassignment", () => {
   });
 
   it("rejects unassignment of an on_the_way pickup", async () => {
-
     await seedState("on_the_way");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
 
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin, undefined), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin, undefined),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects unassignment of an arrived pickup", async () => {
-
     await seedState("arrived");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
 
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin, undefined), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin, undefined),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects unassignment of a completed pickup", async () => {
-
     await seedState("completed");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
 
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin, undefined), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin, undefined),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);
   });
 
   it("rejects unassignment of a cancelled pickup", async () => {
-
     await seedState("cancelled");
     const path = `/api/admin/pickups/${pickupId}/unassign`;
 
     const before = await snapshot();
-    const response = await unassign(makeRequest("PATCH", path, cookies.admin, undefined), contextForPath(path));
+    const response = await unassign(
+      makeRequest("PATCH", path, cookies.admin, undefined),
+      contextForPath(path),
+    );
     expect(response.status, `PATCH ${path}`).toBe(409);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(await snapshot()).toEqual(before);

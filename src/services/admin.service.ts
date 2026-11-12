@@ -62,7 +62,10 @@ export const adminService = {
     role: "customer" | "collector",
     pagination: PaginationInput,
   ) {
-    const { items, total } = await userRepository.getUsersByRole(role, pagination);
+    const { items, total } = await userRepository.getUsersByRole(
+      role,
+      pagination,
+    );
 
     return pageResult(items, total, pagination.page, pagination.pageSize);
   },

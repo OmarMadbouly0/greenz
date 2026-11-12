@@ -114,7 +114,9 @@ function patchProgress(collectorId: number, pickupId: number) {
   );
 }
 
-function settleResponse(operation: Promise<Response>): Promise<PromiseSettledResult<Response>> {
+function settleResponse(
+  operation: Promise<Response>,
+): Promise<PromiseSettledResult<Response>> {
   return operation.then(
     (value) => ({ status: "fulfilled", value }),
     (reason: unknown) => ({ status: "rejected", reason }),
@@ -137,12 +139,17 @@ async function waitForBlockedRequests(count: number) {
   throw new Error(`Expected ${count} requests waiting on the pickup row lock`);
 }
 
-async function runConcurrently(pickupId: number, operations: (() => Promise<Response>)[]) {
+async function runConcurrently(
+  pickupId: number,
+  operations: (() => Promise<Response>)[],
+) {
   const blocker = await control.connect();
   const pending: Promise<PromiseSettledResult<Response>>[] = [];
   try {
     await blocker.query("BEGIN");
-    await blocker.query("SELECT id FROM pickups WHERE id = $1 FOR UPDATE", [pickupId]);
+    await blocker.query("SELECT id FROM pickups WHERE id = $1 FOR UPDATE", [
+      pickupId,
+    ]);
     for (const operation of operations) {
       pending.push(settleResponse(operation()));
       await waitForBlockedRequests(pending.length);
@@ -361,7 +368,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const unassignment = await patchUnassignment(before.id);
     expect(unassignment.status).toBe(409);
-    expect(await unassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await unassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -427,7 +436,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const unassignment = await patchUnassignment(before.id);
     expect(unassignment.status).toBe(409);
-    expect(await unassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await unassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -493,7 +504,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const unassignment = await patchUnassignment(before.id);
     expect(unassignment.status).toBe(409);
-    expect(await unassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await unassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -560,7 +573,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const unassignment = await patchUnassignment(before.id);
     expect(unassignment.status).toBe(409);
-    expect(await unassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await unassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -627,7 +642,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const unassignment = await patchUnassignment(before.id);
     expect(unassignment.status).toBe(409);
-    expect(await unassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await unassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -711,7 +728,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
 
     const secondUnassignment = await patchUnassignment(before.id);
     expect(secondUnassignment.status).toBe(409);
-    expect(await secondUnassignment.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await secondUnassignment.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(
       await prisma.pickup.findUniqueOrThrow({
         where: { id: before.id },
@@ -779,11 +798,19 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
       () => patchUnassignment(before.id),
       () => patchUnassignment(before.id),
     ]);
-    expect(responses.filter((response) => response.status === 200)).toHaveLength(1);
-    const successResponse = responses.find((response) => response.status === 200);
-    const failureResponse = responses.find((response) => response.status !== 200);
+    expect(
+      responses.filter((response) => response.status === 200),
+    ).toHaveLength(1);
+    const successResponse = responses.find(
+      (response) => response.status === 200,
+    );
+    const failureResponse = responses.find(
+      (response) => response.status !== 200,
+    );
     if (!successResponse || !failureResponse) {
-      throw new Error("Expected one successful response and one failure response.");
+      throw new Error(
+        "Expected one successful response and one failure response.",
+      );
     }
     const success = await successResponse.json();
     const saved = await prisma.pickup.findUniqueOrThrow({
@@ -791,7 +818,9 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
       include: { items: true },
     });
     expect(failureResponse.status).toBe(409);
-    expect(await failureResponse.json()).toEqual({ error: "Pickup is not assigned to a collector." });
+    expect(await failureResponse.json()).toEqual({
+      error: "Pickup is not assigned to a collector.",
+    });
     expect(saved).toEqual({
       ...before,
       collector_id: null,
@@ -807,104 +836,117 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
     expect(await prisma.walletTransaction.count()).toBe(0);
   });
 
-  it.each(["unassignment", "progress"] as const)("allows only one of unassignment and collector progress to succeed concurrently (%s first)", async (first) => {
-    const customer = await prisma.user.create({
-      data: {
-        full_name: "Unassignment progress-race customer",
-        email: "unassign-progress-race-customer@example.com",
-        password_hash: "unused",
-        role: "customer",
-      },
-    });
-    const collector = await prisma.user.create({
-      data: {
-        full_name: "Unassignment progress-race collector",
-        email: "unassign-progress-race-collector@example.com",
-        password_hash: "unused",
-        role: "collector",
-      },
-    });
-    const wallet = await prisma.wallet.create({
-      data: {
-        user_id: customer.id,
-        phone: "01100000010",
-        balance: "125.50",
-      },
-    });
-    const material = await prisma.material.create({
-      data: {
-        name: "Unassignment progress-race paper",
-        unit: "kg",
-        current_price: 25,
-      },
-    });
-    const before = await prisma.pickup.create({
-      data: {
-        customer_id: customer.id,
-        collector_id: collector.id,
-        status: "assigned",
-        payout_status: "pending",
-        payout: 23.75,
-        note: "Collect from reception.",
-        items: {
-          create: {
-            material_id: material.id,
-            quantity: 2.5,
-            price_per_unit: 9.5,
-            note: "Dry paper only.",
+  it.each(["unassignment", "progress"] as const)(
+    "allows only one of unassignment and collector progress to succeed concurrently (%s first)",
+    async (first) => {
+      const customer = await prisma.user.create({
+        data: {
+          full_name: "Unassignment progress-race customer",
+          email: "unassign-progress-race-customer@example.com",
+          password_hash: "unused",
+          role: "customer",
+        },
+      });
+      const collector = await prisma.user.create({
+        data: {
+          full_name: "Unassignment progress-race collector",
+          email: "unassign-progress-race-collector@example.com",
+          password_hash: "unused",
+          role: "collector",
+        },
+      });
+      const wallet = await prisma.wallet.create({
+        data: {
+          user_id: customer.id,
+          phone: "01100000010",
+          balance: "125.50",
+        },
+      });
+      const material = await prisma.material.create({
+        data: {
+          name: "Unassignment progress-race paper",
+          unit: "kg",
+          current_price: 25,
+        },
+      });
+      const before = await prisma.pickup.create({
+        data: {
+          customer_id: customer.id,
+          collector_id: collector.id,
+          status: "assigned",
+          payout_status: "pending",
+          payout: 23.75,
+          note: "Collect from reception.",
+          items: {
+            create: {
+              material_id: material.id,
+              quantity: 2.5,
+              price_per_unit: 9.5,
+              note: "Dry paper only.",
+            },
           },
         },
-      },
-      include: { items: true },
-    });
+        include: { items: true },
+      });
 
-    const operations = [
-      () => patchUnassignment(before.id),
-      () => patchProgress(collector.id, before.id),
-    ];
-    if (first === "progress") operations.reverse();
-    const responses = await runConcurrently(before.id, operations);
-    // Both requests were observed waiting on the row lock before release.
-    expect(responses[0].status).toBe(200);
-    expect(responses.filter((response) => response.status === 200)).toHaveLength(1);
-    const successResponse = responses.find((response) => response.status === 200);
-    const failureResponse = responses.find((response) => response.status !== 200);
-    if (!successResponse || !failureResponse) {
-      throw new Error("Expected one successful response and one failure response.");
-    }
-    const success = await successResponse.json();
-    const saved = await prisma.pickup.findUniqueOrThrow({
-      where: { id: before.id },
-      include: { items: true },
-    });
-    if (first === "unassignment") {
-      expect(failureResponse.status).toBe(404);
-      expect(await failureResponse.json()).toEqual({ error: "Pickup not found." });
-      expect(saved).toEqual({
-        ...before,
-        collector_id: null,
-        status: "pending",
-        updated_at: new Date(success.updated_at),
+      const operations = [
+        () => patchUnassignment(before.id),
+        () => patchProgress(collector.id, before.id),
+      ];
+      if (first === "progress") operations.reverse();
+      const responses = await runConcurrently(before.id, operations);
+      // Both requests were observed waiting on the row lock before release.
+      expect(responses[0].status).toBe(200);
+      expect(
+        responses.filter((response) => response.status === 200),
+      ).toHaveLength(1);
+      const successResponse = responses.find(
+        (response) => response.status === 200,
+      );
+      const failureResponse = responses.find(
+        (response) => response.status !== 200,
+      );
+      if (!successResponse || !failureResponse) {
+        throw new Error(
+          "Expected one successful response and one failure response.",
+        );
+      }
+      const success = await successResponse.json();
+      const saved = await prisma.pickup.findUniqueOrThrow({
+        where: { id: before.id },
+        include: { items: true },
       });
-    } else {
-      expect(failureResponse.status).toBe(409);
-      expect(await failureResponse.json()).toEqual({
-        error: "Pickup is not assigned to a collector.",
-      });
-      expect(saved).toEqual({
-        ...before,
-        status: "on_the_way",
-        updated_at: new Date(success.updated_at),
-      });
-    }
-    const { items, ...savedFields } = saved;
-    expect(success).toEqual(JSON.parse(JSON.stringify(savedFields)));
-    expect(items).toEqual(before.items);
-    expect(
-      await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
-    ).toEqual(wallet);
-    expect(await prisma.walletTransaction.count()).toBe(0);
-  });
+      if (first === "unassignment") {
+        expect(failureResponse.status).toBe(404);
+        expect(await failureResponse.json()).toEqual({
+          error: "Pickup not found.",
+        });
+        expect(saved).toEqual({
+          ...before,
+          collector_id: null,
+          status: "pending",
+          updated_at: new Date(success.updated_at),
+        });
+      } else {
+        expect(failureResponse.status).toBe(409);
+        expect(await failureResponse.json()).toEqual({
+          error: "Pickup is not assigned to a collector.",
+        });
+        expect(saved).toEqual({
+          ...before,
+          status: "on_the_way",
+          updated_at: new Date(success.updated_at),
+        });
+      }
+      const { items, ...savedFields } = saved;
+      expect(success).toEqual(JSON.parse(JSON.stringify(savedFields)));
+      expect(items).toEqual(before.items);
+      expect(
+        await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
+      ).toEqual(wallet);
+      expect(await prisma.walletTransaction.count()).toBe(0);
+    },
+  );
 
   it.each(["missing", "invalid", "deleted", "customer", "collector"] as const)(
     "rejects %s authentication without changing persisted state",
@@ -965,7 +1007,12 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
       if (auth === "collector") cookie = `token=${generateToken(collector.id)}`;
       if (auth === "deleted") {
         const deleted = await prisma.user.create({
-          data: { full_name: "Deleted admin", email: "deleted@example.com", password_hash: "unused", role: "admin" },
+          data: {
+            full_name: "Deleted admin",
+            email: "deleted@example.com",
+            password_hash: "unused",
+            role: "admin",
+          },
         });
         cookie = `token=${generateToken(deleted.id)}`;
         await prisma.user.delete({ where: { id: deleted.id } });
@@ -974,12 +1021,23 @@ describe("PATCH /api/admin/pickups/[pickupId]/unassign", () => {
       const forbidden = auth === "customer" || auth === "collector";
       expect(response.status).toBe(forbidden ? 403 : 401);
       expect(await response.json()).toEqual({
-        error: forbidden ? "User does not have the required role."
-          : auth === "missing" ? "Authentication required / Token not found."
-          : auth === "deleted" ? "User not found." : "Invalid or expired token.",
+        error: forbidden
+          ? "User does not have the required role."
+          : auth === "missing"
+            ? "Authentication required / Token not found."
+            : auth === "deleted"
+              ? "User not found."
+              : "Invalid or expired token.",
       });
-      expect(await prisma.pickup.findUniqueOrThrow({ where: { id: before.id }, include: { items: true } })).toEqual(before);
-      expect(await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } })).toEqual(wallet);
+      expect(
+        await prisma.pickup.findUniqueOrThrow({
+          where: { id: before.id },
+          include: { items: true },
+        }),
+      ).toEqual(before);
+      expect(
+        await prisma.wallet.findUniqueOrThrow({ where: { id: wallet.id } }),
+      ).toEqual(wallet);
       expect(await prisma.walletTransaction.count()).toBe(0);
     },
   );

@@ -34,7 +34,7 @@ const originalDatabaseUrl = process.env.DATABASE_URL;
 
 const originalJwtSecret = process.env.JWT_SECRET;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const originalClient = globalForPrisma.prisma;
 
@@ -58,16 +58,11 @@ beforeAll(async () => {
   });
   await prisma.$connect();
   serviceClient = getPrisma();
-
 }, 180_000);
 
 afterAll(async () => {
   try {
-    await Promise.all([
-      prisma?.$disconnect(),
-      serviceClient?.$disconnect(),
-
-    ]);
+    await Promise.all([prisma?.$disconnect(), serviceClient?.$disconnect()]);
   } finally {
     try {
       await container?.stop();
@@ -81,9 +76,11 @@ afterAll(async () => {
   }
 });
 
-type Actor = "customer" | "otherCustomer" | "collector" | "otherCollector" | "admin";
+type Actor =
+  "customer" | "otherCustomer" | "collector" | "otherCollector" | "admin";
 
-type PickupState = "pending" | "assigned" | "on_the_way" | "arrived" | "completed" | "cancelled";
+type PickupState =
+  "pending" | "assigned" | "on_the_way" | "arrived" | "completed" | "cancelled";
 
 const secret = "pickup-route-disposable-test-secret";
 
@@ -97,13 +94,29 @@ let pickupId: number;
 
 let materialId: number;
 
-function makeRequest(method: string, path: string, cookie?: string, body?: unknown) {
-  return new Request(`http://localhost${path}`, { method, headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+function makeRequest(
+  method: string,
+  path: string,
+  cookie?: string,
+  body?: unknown,
+) {
+  return new Request(`http://localhost${path}`, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }
 
 function contextForPath(path: string) {
   const segments = new URL(path, "http://localhost").pathname.split("/");
-  return { params: Promise.resolve({ pickupId: segments[segments.indexOf("pickups") + 1] }) };
+  return {
+    params: Promise.resolve({
+      pickupId: segments[segments.indexOf("pickups") + 1],
+    }),
+  };
 }
 
 async function snapshot() {
@@ -134,10 +147,30 @@ async function seedState(status: PickupState) {
 
 function idEndpoints(id: string | number) {
   return [
-    { handler: pickup.GET, method: "GET", path: `/api/pickups/${id}`, actor: "customer" },
-    { handler: pickup.GET, method: "GET", path: `/api/pickups/${id}`, actor: "collector" },
-    { handler: pickup.GET, method: "GET", path: `/api/pickups/${id}`, actor: "admin" },
-    { handler: pickup.DELETE, method: "DELETE", path: `/api/pickups/${id}`, actor: "customer" },
+    {
+      handler: pickup.GET,
+      method: "GET",
+      path: `/api/pickups/${id}`,
+      actor: "customer",
+    },
+    {
+      handler: pickup.GET,
+      method: "GET",
+      path: `/api/pickups/${id}`,
+      actor: "collector",
+    },
+    {
+      handler: pickup.GET,
+      method: "GET",
+      path: `/api/pickups/${id}`,
+      actor: "admin",
+    },
+    {
+      handler: pickup.DELETE,
+      method: "DELETE",
+      path: `/api/pickups/${id}`,
+      actor: "customer",
+    },
     {
       handler: pickup.PATCH,
       method: "PATCH",
@@ -202,7 +235,12 @@ function endpoints() {
       allowed: ["collector"],
       body: { status: "on_the_way" },
     },
-    { handler: listAdminPickups, method: "GET", path: "/api/admin/pickups", allowed: ["admin"] },
+    {
+      handler: listAdminPickups,
+      method: "GET",
+      path: "/api/admin/pickups",
+      allowed: ["admin"],
+    },
     {
       handler: assign,
       method: "PATCH",
@@ -288,12 +326,13 @@ beforeEach(async () => {
 }, 90_000);
 
 describe("Pickup permissions and IDs", () => {
-
   it("rejects missing authentication on every pickup endpoint without writes", async () => {
-
     for (const endpoint of endpoints()) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, undefined, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(endpoint.method, endpoint.path, undefined, endpoint.body),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(401);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -301,11 +340,18 @@ describe("Pickup permissions and IDs", () => {
   }, 90_000);
 
   it("rejects malformed authentication on every pickup endpoint without writes", async () => {
-
     const token = "invalid-token";
     for (const endpoint of endpoints()) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, `token=${token}`, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          `token=${token}`,
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(401);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -313,11 +359,18 @@ describe("Pickup permissions and IDs", () => {
   }, 90_000);
 
   it("rejects expired authentication on every pickup endpoint without writes", async () => {
-
     const token = jwt.sign({ userId: users.admin }, secret, { expiresIn: -60 });
     for (const endpoint of endpoints()) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, `token=${token}`, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          `token=${token}`,
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(401);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -325,13 +378,20 @@ describe("Pickup permissions and IDs", () => {
   }, 90_000);
 
   it("rejects tokens signed with the wrong secret on every pickup endpoint without writes", async () => {
-
     const token = jwt.sign({ userId: users.admin }, "wrong-secret", {
       expiresIn: 3600,
     });
     for (const endpoint of endpoints()) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, `token=${token}`, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          `token=${token}`,
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(401);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -339,7 +399,6 @@ describe("Pickup permissions and IDs", () => {
   }, 90_000);
 
   it("rejects deleted-user authentication on every pickup endpoint without writes", async () => {
-
     const deleted = await prisma.user.create({
       data: {
         full_name: "Deleted",
@@ -351,7 +410,15 @@ describe("Pickup permissions and IDs", () => {
     const token = jwt.sign({ userId: deleted.id }, secret, { expiresIn: 3600 });
     for (const endpoint of endpoints()) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, `token=${token}`, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          `token=${token}`,
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(401);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -359,12 +426,19 @@ describe("Pickup permissions and IDs", () => {
   }, 90_000);
 
   it("rejects forbidden customer operations", async () => {
-
     for (const endpoint of endpoints().filter(
       (entry) => !entry.allowed.includes("customer"),
     )) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies["customer"], endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies["customer"],
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(403);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -372,12 +446,19 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects forbidden collector operations", async () => {
-
     for (const endpoint of endpoints().filter(
       (entry) => !entry.allowed.includes("collector"),
     )) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies["collector"], endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies["collector"],
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(403);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -385,12 +466,19 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects forbidden admin operations", async () => {
-
     for (const endpoint of endpoints().filter(
       (entry) => !entry.allowed.includes("admin"),
     )) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies["admin"], endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies["admin"],
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(403);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -398,30 +486,49 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("prevents another customer or collector from reading or changing the pickup", async () => {
-
     for (const actor of ["otherCustomer", "otherCollector"] as const) {
       const before = await snapshot();
-      const response = await pickup.GET(makeRequest("GET", `/api/pickups/${pickupId}`, cookies[actor]), contextForPath(`/api/pickups/${pickupId}`));
+      const response = await pickup.GET(
+        makeRequest("GET", `/api/pickups/${pickupId}`, cookies[actor]),
+        contextForPath(`/api/pickups/${pickupId}`),
+      );
       expect(response.status, `GET ${`/api/pickups/${pickupId}`}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await pickup.DELETE(makeRequest("DELETE", `/api/pickups/${pickupId}`, cookies.otherCustomer), contextForPath(`/api/pickups/${pickupId}`));
+      const response = await pickup.DELETE(
+        makeRequest(
+          "DELETE",
+          `/api/pickups/${pickupId}`,
+          cookies.otherCustomer,
+        ),
+        contextForPath(`/api/pickups/${pickupId}`),
+      );
       expect(response.status, `DELETE ${`/api/pickups/${pickupId}`}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await pickup.PATCH(makeRequest("PATCH", `/api/pickups/${pickupId}`, cookies.otherCollector, { status: "on_the_way" }), contextForPath(`/api/pickups/${pickupId}`));
+      const response = await pickup.PATCH(
+        makeRequest(
+          "PATCH",
+          `/api/pickups/${pickupId}`,
+          cookies.otherCollector,
+          { status: "on_the_way" },
+        ),
+        contextForPath(`/api/pickups/${pickupId}`),
+      );
       expect(response.status, `PATCH ${`/api/pickups/${pickupId}`}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
     }
     for (const actor of ["otherCustomer", "otherCollector"] as const) {
-      const response = await pickups.GET(makeRequest("GET", "/api/pickups", cookies[actor]));
+      const response = await pickups.GET(
+        makeRequest("GET", "/api/pickups", cookies[actor]),
+      );
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({
         items: [],
@@ -434,7 +541,6 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("uses the current database role even when an old admin cookie remains valid", async () => {
-
     await prisma.user.update({
       where: { id: users.admin },
       data: { role: "customer" },
@@ -443,7 +549,15 @@ describe("Pickup permissions and IDs", () => {
       entry.path.startsWith("/api/admin/"),
     )) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies.admin, endpoint.body), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies.admin,
+          endpoint.body,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(403);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -451,10 +565,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects zero path IDs on every ID route without writes", async () => {
-
     for (const endpoint of idEndpoints("0")) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -462,10 +583,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects negative path IDs on every ID route without writes", async () => {
-
     for (const endpoint of idEndpoints("-1")) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -473,10 +601,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects fractional path IDs on every ID route without writes", async () => {
-
     for (const endpoint of idEndpoints("1.5")) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -484,10 +619,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects nonnumeric path IDs on every ID route without writes", async () => {
-
     for (const endpoint of idEndpoints("abc")) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -495,10 +637,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects oversized path IDs on every ID route without writes", async () => {
-
     for (const endpoint of idEndpoints("2147483648")) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(400);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -506,11 +655,18 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("returns 404 for a deleted pickup on every ID route without writes", async () => {
-
     await prisma.pickup.delete({ where: { id: pickupId } });
     for (const endpoint of idEndpoints(pickupId)) {
       const before = await snapshot();
-      const response = await endpoint.handler(makeRequest(endpoint.method, endpoint.path, cookies[endpoint.actor], "body" in endpoint ? endpoint.body : undefined), contextForPath(endpoint.path));
+      const response = await endpoint.handler(
+        makeRequest(
+          endpoint.method,
+          endpoint.path,
+          cookies[endpoint.actor],
+          "body" in endpoint ? endpoint.body : undefined,
+        ),
+        contextForPath(endpoint.path),
+      );
       expect(response.status, `${endpoint.method} ${endpoint.path}`).toBe(404);
       expect(await response.json()).toEqual({ error: expect.any(String) });
       expect(await snapshot()).toEqual(before);
@@ -518,26 +674,37 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects material and collector IDs above the database maximum without writes", async () => {
-
     await seedState("pending");
     {
       const before = await snapshot();
-      const response = await pickups.POST(makeRequest("POST", "/api/pickups", cookies.customer, {
-        items: [
-          { materialId, quantity: 1 },
-          { materialId: 2147483648, quantity: 1 },
-        ],
-      }));
+      const response = await pickups.POST(
+        makeRequest("POST", "/api/pickups", cookies.customer, {
+          items: [
+            { materialId, quantity: 1 },
+            { materialId: 2147483648, quantity: 1 },
+          ],
+        }),
+      );
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
       expect(await response.json()).toEqual({
         error: "Invalid input",
-        errors: { "items.1.materialId": "Material must not exceed 2147483647." },
+        errors: {
+          "items.1.materialId": "Material must not exceed 2147483647.",
+        },
       });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", `/api/admin/pickups/${pickupId}/assign`, cookies.admin, { collectorId: 2147483648 }), contextForPath(`/api/admin/pickups/${pickupId}/assign`));
+      const response = await assign(
+        makeRequest(
+          "PATCH",
+          `/api/admin/pickups/${pickupId}/assign`,
+          cookies.admin,
+          { collectorId: 2147483648 },
+        ),
+        contextForPath(`/api/admin/pickups/${pickupId}/assign`),
+      );
       expect(
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
@@ -551,26 +718,37 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects material and collector IDs at the JavaScript safe integer maximum without writes", async () => {
-
     await seedState("pending");
     {
       const before = await snapshot();
-      const response = await pickups.POST(makeRequest("POST", "/api/pickups", cookies.customer, {
-        items: [
-          { materialId, quantity: 1 },
-          { materialId: Number.MAX_SAFE_INTEGER, quantity: 1 },
-        ],
-      }));
+      const response = await pickups.POST(
+        makeRequest("POST", "/api/pickups", cookies.customer, {
+          items: [
+            { materialId, quantity: 1 },
+            { materialId: Number.MAX_SAFE_INTEGER, quantity: 1 },
+          ],
+        }),
+      );
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
       expect(await response.json()).toEqual({
         error: "Invalid input",
-        errors: { "items.1.materialId": "Material must not exceed 2147483647." },
+        errors: {
+          "items.1.materialId": "Material must not exceed 2147483647.",
+        },
       });
       expect(await snapshot()).toEqual(before);
     }
     {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", `/api/admin/pickups/${pickupId}/assign`, cookies.admin, { collectorId: Number.MAX_SAFE_INTEGER }), contextForPath(`/api/admin/pickups/${pickupId}/assign`));
+      const response = await assign(
+        makeRequest(
+          "PATCH",
+          `/api/admin/pickups/${pickupId}/assign`,
+          cookies.admin,
+          { collectorId: Number.MAX_SAFE_INTEGER },
+        ),
+        contextForPath(`/api/admin/pickups/${pickupId}/assign`),
+      );
       expect(
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
@@ -584,16 +762,17 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("rejects material and collector IDs beyond the JavaScript safe integer range without writes", async () => {
-
     await seedState("pending");
     {
       const before = await snapshot();
-      const response = await pickups.POST(makeRequest("POST", "/api/pickups", cookies.customer, {
-        items: [
-          { materialId, quantity: 1 },
-          { materialId: Number.MAX_SAFE_INTEGER + 1, quantity: 1 },
-        ],
-      }));
+      const response = await pickups.POST(
+        makeRequest("POST", "/api/pickups", cookies.customer, {
+          items: [
+            { materialId, quantity: 1 },
+            { materialId: Number.MAX_SAFE_INTEGER + 1, quantity: 1 },
+          ],
+        }),
+      );
       expect(response.status, `POST ${"/api/pickups"}`).toBe(400);
       expect(await response.json()).toEqual({
         error: "Invalid input",
@@ -603,7 +782,15 @@ describe("Pickup permissions and IDs", () => {
     }
     {
       const before = await snapshot();
-      const response = await assign(makeRequest("PATCH", `/api/admin/pickups/${pickupId}/assign`, cookies.admin, { collectorId: Number.MAX_SAFE_INTEGER + 1 }), contextForPath(`/api/admin/pickups/${pickupId}/assign`));
+      const response = await assign(
+        makeRequest(
+          "PATCH",
+          `/api/admin/pickups/${pickupId}/assign`,
+          cookies.admin,
+          { collectorId: Number.MAX_SAFE_INTEGER + 1 },
+        ),
+        contextForPath(`/api/admin/pickups/${pickupId}/assign`),
+      );
       expect(
         response.status,
         `PATCH ${`/api/admin/pickups/${pickupId}/assign`}`,
@@ -617,7 +804,6 @@ describe("Pickup permissions and IDs", () => {
   });
 
   it("accepts the maximum database ID for real materials and collectors", async () => {
-
     const maxId = 2147483647;
     await prisma.material.create({
       data: {
@@ -637,11 +823,13 @@ describe("Pickup permissions and IDs", () => {
       },
     });
     const before = await snapshot();
-    const response = await pickups.POST(makeRequest("POST", "/api/pickups", cookies.customer, {
-      items: [{ materialId: maxId, quantity: 1 }],
-    }));
+    const response = await pickups.POST(
+      makeRequest("POST", "/api/pickups", cookies.customer, {
+        items: [{ materialId: maxId, quantity: 1 }],
+      }),
+    );
     expect(response.status).toBe(201);
-    const body: { id: number; } = await response.json();
+    const body: { id: number } = await response.json();
     const saved = await prisma.pickup.findUniqueOrThrow({
       where: { id: body.id },
       include: { items: true },
@@ -651,7 +839,15 @@ describe("Pickup permissions and IDs", () => {
     expect(saved.payout?.toString()).toBe("10");
 
     await seedState("pending");
-    const assigned = await assign(makeRequest("PATCH", `/api/admin/pickups/${pickupId}/assign`, cookies.admin, { collectorId: maxId }), contextForPath(`/api/admin/pickups/${pickupId}/assign`));
+    const assigned = await assign(
+      makeRequest(
+        "PATCH",
+        `/api/admin/pickups/${pickupId}/assign`,
+        cookies.admin,
+        { collectorId: maxId },
+      ),
+      contextForPath(`/api/admin/pickups/${pickupId}/assign`),
+    );
     expect(assigned.status).toBe(200);
     expect(await assigned.json()).toMatchObject({
       id: pickupId,

@@ -31,7 +31,10 @@ export const transactionService = {
     );
     return pageResult(items, total, pagination.page, pagination.pageSize);
   },
-  async getWalletTransactionsByUserId(userId: number, pagination: PaginationInput) {
+  async getWalletTransactionsByUserId(
+    userId: number,
+    pagination: PaginationInput,
+  ) {
     const wallet = await walletService.getWalletByUserId(userId);
     const { items, total } = await walletRepository.getWalletTransactions(
       wallet.id,

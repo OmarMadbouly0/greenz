@@ -63,10 +63,11 @@ export const withdrawalService = {
     if (!wallet) {
       throw new NotFoundError("Wallet not found.");
     }
-    const { items, total } = await withdrawalRepository.getWithdrawalsByWalletId(
-      wallet.id,
-      pagination,
-    );
+    const { items, total } =
+      await withdrawalRepository.getWithdrawalsByWalletId(
+        wallet.id,
+        pagination,
+      );
     return pageResult(items, total, pagination.page, pagination.pageSize);
   },
 

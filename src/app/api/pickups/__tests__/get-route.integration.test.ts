@@ -35,7 +35,7 @@ const originalDatabaseUrl = process.env.DATABASE_URL;
 
 const originalJwtSecret = process.env.JWT_SECRET;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const originalClient = globalForPrisma.prisma;
 
@@ -102,31 +102,63 @@ beforeEach(async () => {
 
 function jsonValue(value: unknown): unknown {
   if (value === null || typeof value !== "object") return value;
-  if ("toJSON" in value && typeof value.toJSON === "function") return value.toJSON();
+  if ("toJSON" in value && typeof value.toJSON === "function")
+    return value.toJSON();
   if (Array.isArray(value)) return value.map(jsonValue);
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, jsonValue(item)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, jsonValue(item)]),
+  );
 }
 
 function queryRequest(userId: number, query: object, admin = false) {
-  const params = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]));
-  return new Request(`http://localhost/api/${admin ? "admin/" : ""}pickups?${params}`, { headers: { cookie: `token=${generateToken(userId)}` } });
+  const params = new URLSearchParams(
+    Object.entries(query).map(([key, value]) => [key, String(value)]),
+  );
+  return new Request(
+    `http://localhost/api/${admin ? "admin/" : ""}pickups?${params}`,
+    { headers: { cookie: `token=${generateToken(userId)}` } },
+  );
 }
 
-function makeRequest(method: string, pickupId: number, userId: number, body?: unknown, payout = false) {
-  return new Request(`http://localhost/api/${payout ? "admin/" : ""}pickups/${pickupId}${payout ? "/payout" : ""}`, {
-    method,
-    headers: { cookie: `token=${generateToken(userId)}`, "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+function makeRequest(
+  method: string,
+  pickupId: number,
+  userId: number,
+  body?: unknown,
+  payout = false,
+) {
+  return new Request(
+    `http://localhost/api/${payout ? "admin/" : ""}pickups/${pickupId}${payout ? "/payout" : ""}`,
+    {
+      method,
+      headers: {
+        cookie: `token=${generateToken(userId)}`,
+        "content-type": "application/json",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    },
+  );
 }
 
-function context(pickupId: number) { return { params: Promise.resolve({ pickupId: String(pickupId) }) }; }
+function context(pickupId: number) {
+  return { params: Promise.resolve({ pickupId: String(pickupId) }) };
+}
 
-function getPickupById(userId: number, pickupId: number) { return detailRoute(makeRequest("GET", pickupId, userId), context(pickupId)); }
+function getPickupById(userId: number, pickupId: number) {
+  return detailRoute(makeRequest("GET", pickupId, userId), context(pickupId));
+}
 
-function getPickups(userId: number, query: { page: number; pageSize: number; }) { return listRoute(queryRequest(userId, query)); }
+function getPickups(userId: number, query: { page: number; pageSize: number }) {
+  return listRoute(queryRequest(userId, query));
+}
 
-function getAllPickups(query: { page: number; pageSize: number; status?: string; }) { return adminListRoute(queryRequest(adminId, query, true)); }
+function getAllPickups(query: {
+  page: number;
+  pageSize: number;
+  status?: string;
+}) {
+  return adminListRoute(queryRequest(adminId, query, true));
+}
 
 describe("Direct pickup get routes (service scenario parity)", () => {
   it("returns not-found for a deleted pickup for customers, collectors, and admins", async () => {
@@ -166,15 +198,21 @@ describe("Direct pickup get routes (service scenario parity)", () => {
 
     const customerRead = getPickupById(customer.id, pickup.id);
     expect((await customerRead).status).toBe(404);
-    expect(await (await customerRead).json()).toEqual({ error: "Pickup not found." });
+    expect(await (await customerRead).json()).toEqual({
+      error: "Pickup not found.",
+    });
 
     const collectorRead = getPickupById(collector.id, pickup.id);
     expect((await collectorRead).status).toBe(404);
-    expect(await (await collectorRead).json()).toEqual({ error: "Pickup not found." });
+    expect(await (await collectorRead).json()).toEqual({
+      error: "Pickup not found.",
+    });
 
     const adminRead = getPickupById(admin.id, pickup.id);
     expect((await adminRead).status).toBe(404);
-    expect(await (await adminRead).json()).toEqual({ error: "Pickup not found." });
+    expect(await (await adminRead).json()).toEqual({
+      error: "Pickup not found.",
+    });
   });
 
   it("prevents a customer from reading another customer's pickup", async () => {
@@ -220,7 +258,9 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(result).toEqual(jsonValue(pickup));
     const otherCustomerRead = getPickupById(otherCustomer.id, pickup.id);
     expect((await otherCustomerRead).status).toBe(404);
-    expect(await (await otherCustomerRead).json()).toEqual({ error: "Pickup not found." });
+    expect(await (await otherCustomerRead).json()).toEqual({
+      error: "Pickup not found.",
+    });
   });
 
   it("returns the requested pickup when the customer owns multiple pickups", async () => {
@@ -268,10 +308,16 @@ describe("Direct pickup get routes (service scenario parity)", () => {
       include: { items: true },
     });
 
-    const firstResultResponse = await getPickupById(customer.id, firstPickup.id);
+    const firstResultResponse = await getPickupById(
+      customer.id,
+      firstPickup.id,
+    );
     expect(firstResultResponse.status).toBe(200);
     const firstResult = await firstResultResponse.json();
-    const secondResultResponse = await getPickupById(customer.id, secondPickup.id);
+    const secondResultResponse = await getPickupById(
+      customer.id,
+      secondPickup.id,
+    );
     expect(secondResultResponse.status).toBe(200);
     const secondResult = await secondResultResponse.json();
 
@@ -333,7 +379,9 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(result).toEqual(jsonValue(pickup));
     const otherCollectorRead = getPickupById(otherCollector.id, pickup.id);
     expect((await otherCollectorRead).status).toBe(404);
-    expect(await (await otherCollectorRead).json()).toEqual({ error: "Pickup not found." });
+    expect(await (await otherCollectorRead).json()).toEqual({
+      error: "Pickup not found.",
+    });
   });
 
   it("returns the requested pickup when the collector has multiple assigned pickups", async () => {
@@ -393,10 +441,16 @@ describe("Direct pickup get routes (service scenario parity)", () => {
       include: { items: true },
     });
 
-    const firstResultResponse = await getPickupById(collector.id, firstPickup.id);
+    const firstResultResponse = await getPickupById(
+      collector.id,
+      firstPickup.id,
+    );
     expect(firstResultResponse.status).toBe(200);
     const firstResult = await firstResultResponse.json();
-    const secondResultResponse = await getPickupById(collector.id, secondPickup.id);
+    const secondResultResponse = await getPickupById(
+      collector.id,
+      secondPickup.id,
+    );
     expect(secondResultResponse.status).toBe(200);
     const secondResult = await secondResultResponse.json();
 
@@ -596,7 +650,9 @@ describe("Direct pickup get routes (service scenario parity)", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items).toEqual(jsonValue([newerPickup, olderPickup]));
-    expect(result.items.map((pickup: { id: number; }) => pickup.id)).not.toContain(otherPickup.id);
+    expect(
+      result.items.map((pickup: { id: number }) => pickup.id),
+    ).not.toContain(otherPickup.id);
   });
 
   it("returns only pickups assigned to the collector", async () => {
@@ -668,8 +724,12 @@ describe("Direct pickup get routes (service scenario parity)", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items).toEqual(jsonValue([newerPickup, olderPickup]));
-    expect(result.items.map((pickup: { id: number; }) => pickup.id)).not.toContain(otherPickup.id);
-    expect(result.items.map((pickup: { id: number; }) => pickup.id)).not.toContain(unassignedPickup.id);
+    expect(
+      result.items.map((pickup: { id: number }) => pickup.id),
+    ).not.toContain(otherPickup.id);
+    expect(
+      result.items.map((pickup: { id: number }) => pickup.id),
+    ).not.toContain(unassignedPickup.id);
   });
 
   it("returns the second page of all pickups with the total count and page count", async () => {
@@ -708,31 +768,35 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
 
-    expect(result).toEqual(jsonValue({
-      items: [{
-        id: oldestPickup.id,
-        status: oldestPickup.status,
-        note: oldestPickup.note,
-        payout: jsonValue(oldestPickup.payout),
-        payout_status: oldestPickup.payout_status,
-        requested_at: jsonValue(oldestPickup.requested_at),
-        completed_at: jsonValue(oldestPickup.completed_at),
-        cancelled_at: jsonValue(oldestPickup.cancelled_at),
-        created_at: jsonValue(oldestPickup.created_at),
-        updated_at: jsonValue(oldestPickup.updated_at),
-        customer: {
-          id: customer.id,
-          full_name: customer.full_name,
-          email: customer.email,
-        },
-        collector: null,
-        items: [],
-      }],
-      page: 2,
-      pageSize: 2,
-      total: 3,
-      totalPages: 2,
-    }));
+    expect(result).toEqual(
+      jsonValue({
+        items: [
+          {
+            id: oldestPickup.id,
+            status: oldestPickup.status,
+            note: oldestPickup.note,
+            payout: jsonValue(oldestPickup.payout),
+            payout_status: oldestPickup.payout_status,
+            requested_at: jsonValue(oldestPickup.requested_at),
+            completed_at: jsonValue(oldestPickup.completed_at),
+            cancelled_at: jsonValue(oldestPickup.cancelled_at),
+            created_at: jsonValue(oldestPickup.created_at),
+            updated_at: jsonValue(oldestPickup.updated_at),
+            customer: {
+              id: customer.id,
+              full_name: customer.full_name,
+              email: customer.email,
+            },
+            collector: null,
+            items: [],
+          },
+        ],
+        page: 2,
+        pageSize: 2,
+        total: 3,
+        totalPages: 2,
+      }),
+    );
   });
 
   it("returns the correct customer, collector, and material details with saved item prices", async () => {
@@ -817,70 +881,76 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
 
-    expect(result.items).toEqual(jsonValue([
-      {
-        id: plasticPickup.id,
-        status: plasticPickup.status,
-        note: plasticPickup.note,
-        payout: jsonValue(plasticPickup.payout),
-        payout_status: plasticPickup.payout_status,
-        requested_at: jsonValue(plasticPickup.requested_at),
-        completed_at: jsonValue(plasticPickup.completed_at),
-        cancelled_at: jsonValue(plasticPickup.cancelled_at),
-        created_at: jsonValue(plasticPickup.created_at),
-        updated_at: jsonValue(plasticPickup.updated_at),
-        customer: {
-          id: otherCustomer.id,
-          full_name: otherCustomer.full_name,
-          email: otherCustomer.email,
-        },
-        collector: {
-          id: otherCollector.id,
-          full_name: otherCollector.full_name,
-          email: otherCollector.email,
-        },
-        items: [
-          {
-            id: plasticPickup.items[0].id,
-            quantity: jsonValue(plasticPickup.items[0].quantity),
-            price_per_unit: jsonValue(plasticPickup.items[0].price_per_unit),
-            note: "Empty bottles only.",
-            material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
+    expect(result.items).toEqual(
+      jsonValue([
+        {
+          id: plasticPickup.id,
+          status: plasticPickup.status,
+          note: plasticPickup.note,
+          payout: jsonValue(plasticPickup.payout),
+          payout_status: plasticPickup.payout_status,
+          requested_at: jsonValue(plasticPickup.requested_at),
+          completed_at: jsonValue(plasticPickup.completed_at),
+          cancelled_at: jsonValue(plasticPickup.cancelled_at),
+          created_at: jsonValue(plasticPickup.created_at),
+          updated_at: jsonValue(plasticPickup.updated_at),
+          customer: {
+            id: otherCustomer.id,
+            full_name: otherCustomer.full_name,
+            email: otherCustomer.email,
           },
-        ],
-      },
-      {
-        id: paperPickup.id,
-        status: paperPickup.status,
-        note: paperPickup.note,
-        payout: jsonValue(paperPickup.payout),
-        payout_status: paperPickup.payout_status,
-        requested_at: jsonValue(paperPickup.requested_at),
-        completed_at: jsonValue(paperPickup.completed_at),
-        cancelled_at: jsonValue(paperPickup.cancelled_at),
-        created_at: jsonValue(paperPickup.created_at),
-        updated_at: jsonValue(paperPickup.updated_at),
-        customer: {
-          id: customer.id,
-          full_name: customer.full_name,
-          email: customer.email,
-        },
-        collector: {
-          id: collector.id,
-          full_name: collector.full_name,
-          email: collector.email,
-        },
-        items: [
-          {
-            id: paperPickup.items[0].id,
-            quantity: jsonValue(paperPickup.items[0].quantity),
-            price_per_unit: jsonValue(paperPickup.items[0].price_per_unit),
-            note: "Dry paper only.",
-            material: { id: paper.id, name: "Paper", unit: "kg" },
+          collector: {
+            id: otherCollector.id,
+            full_name: otherCollector.full_name,
+            email: otherCollector.email,
           },
-        ],
-      },
-    ]));
+          items: [
+            {
+              id: plasticPickup.items[0].id,
+              quantity: jsonValue(plasticPickup.items[0].quantity),
+              price_per_unit: jsonValue(plasticPickup.items[0].price_per_unit),
+              note: "Empty bottles only.",
+              material: {
+                id: plastic.id,
+                name: "Plastic bottles",
+                unit: "piece",
+              },
+            },
+          ],
+        },
+        {
+          id: paperPickup.id,
+          status: paperPickup.status,
+          note: paperPickup.note,
+          payout: jsonValue(paperPickup.payout),
+          payout_status: paperPickup.payout_status,
+          requested_at: jsonValue(paperPickup.requested_at),
+          completed_at: jsonValue(paperPickup.completed_at),
+          cancelled_at: jsonValue(paperPickup.cancelled_at),
+          created_at: jsonValue(paperPickup.created_at),
+          updated_at: jsonValue(paperPickup.updated_at),
+          customer: {
+            id: customer.id,
+            full_name: customer.full_name,
+            email: customer.email,
+          },
+          collector: {
+            id: collector.id,
+            full_name: collector.full_name,
+            email: collector.email,
+          },
+          items: [
+            {
+              id: paperPickup.items[0].id,
+              quantity: jsonValue(paperPickup.items[0].quantity),
+              price_per_unit: jsonValue(paperPickup.items[0].price_per_unit),
+              note: "Dry paper only.",
+              material: { id: paper.id, name: "Paper", unit: "kg" },
+            },
+          ],
+        },
+      ]),
+    );
   });
 
   it("returns all items for a pickup with multiple materials", async () => {
@@ -931,22 +1001,24 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0].id).toBe(pickup.id);
     expect(result.items[0].items).toHaveLength(2);
-    expect(result.items[0].items).toEqual(expect.arrayContaining([
-      {
-        id: paperItem.id,
-        quantity: jsonValue(paperItem.quantity),
-        price_per_unit: jsonValue(paperItem.price_per_unit),
-        note: "Dry paper only.",
-        material: { id: paper.id, name: "Paper", unit: "kg" },
-      },
-      {
-        id: plasticItem.id,
-        quantity: jsonValue(plasticItem.quantity),
-        price_per_unit: jsonValue(plasticItem.price_per_unit),
-        note: "Empty bottles only.",
-        material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
-      },
-    ]));
+    expect(result.items[0].items).toEqual(
+      expect.arrayContaining([
+        {
+          id: paperItem.id,
+          quantity: jsonValue(paperItem.quantity),
+          price_per_unit: jsonValue(paperItem.price_per_unit),
+          note: "Dry paper only.",
+          material: { id: paper.id, name: "Paper", unit: "kg" },
+        },
+        {
+          id: plasticItem.id,
+          quantity: jsonValue(plasticItem.quantity),
+          price_per_unit: jsonValue(plasticItem.price_per_unit),
+          note: "Empty bottles only.",
+          material: { id: plastic.id, name: "Plastic bottles", unit: "piece" },
+        },
+      ]),
+    );
   });
 
   it("returns only pickups matching the status and counts only matching pickups", async () => {
@@ -993,32 +1065,34 @@ describe("Direct pickup get routes (service scenario parity)", () => {
     expect(resultResponse.status).toBe(200);
     const result = await resultResponse.json();
 
-    expect(result).toEqual(jsonValue({
-      items: [
-        {
-          id: newerPendingPickup.id,
-          status: newerPendingPickup.status,
-          note: newerPendingPickup.note,
-          payout: jsonValue(newerPendingPickup.payout),
-          payout_status: newerPendingPickup.payout_status,
-          requested_at: jsonValue(newerPendingPickup.requested_at),
-          completed_at: jsonValue(newerPendingPickup.completed_at),
-          cancelled_at: jsonValue(newerPendingPickup.cancelled_at),
-          created_at: jsonValue(newerPendingPickup.created_at),
-          updated_at: jsonValue(newerPendingPickup.updated_at),
-          customer: {
-            id: customer.id,
-            full_name: customer.full_name,
-            email: customer.email,
+    expect(result).toEqual(
+      jsonValue({
+        items: [
+          {
+            id: newerPendingPickup.id,
+            status: newerPendingPickup.status,
+            note: newerPendingPickup.note,
+            payout: jsonValue(newerPendingPickup.payout),
+            payout_status: newerPendingPickup.payout_status,
+            requested_at: jsonValue(newerPendingPickup.requested_at),
+            completed_at: jsonValue(newerPendingPickup.completed_at),
+            cancelled_at: jsonValue(newerPendingPickup.cancelled_at),
+            created_at: jsonValue(newerPendingPickup.created_at),
+            updated_at: jsonValue(newerPendingPickup.updated_at),
+            customer: {
+              id: customer.id,
+              full_name: customer.full_name,
+              email: customer.email,
+            },
+            collector: null,
+            items: [],
           },
-          collector: null,
-          items: [],
-        },
-      ],
-      page: 1,
-      pageSize: 1,
-      total: 2,
-      totalPages: 2,
-    }));
+        ],
+        page: 1,
+        pageSize: 1,
+        total: 2,
+        totalPages: 2,
+      }),
+    );
   });
 });

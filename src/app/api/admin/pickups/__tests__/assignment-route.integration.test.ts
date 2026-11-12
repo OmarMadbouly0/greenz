@@ -100,7 +100,9 @@ function patchAssignment(collectorId: number, pickupId: number) {
   );
 }
 
-function settleResponse(operation: Promise<Response>): Promise<PromiseSettledResult<Response>> {
+function settleResponse(
+  operation: Promise<Response>,
+): Promise<PromiseSettledResult<Response>> {
   return operation.then(
     (value) => ({ status: "fulfilled", value }),
     (reason: unknown) => ({ status: "rejected", reason }),
@@ -120,7 +122,9 @@ async function waitForBlockedAssignments(count: number) {
     if (result.rows[0].count >= count) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
-  throw new Error(`Expected ${count} assignments waiting on the pickup row lock`);
+  throw new Error(
+    `Expected ${count} assignments waiting on the pickup row lock`,
+  );
 }
 
 async function assignConcurrently(pickupId: number, collectorIds: number[]) {
@@ -128,7 +132,9 @@ async function assignConcurrently(pickupId: number, collectorIds: number[]) {
   const pending: Promise<PromiseSettledResult<Response>>[] = [];
   try {
     await blocker.query("BEGIN");
-    await blocker.query("SELECT id FROM pickups WHERE id = $1 FOR UPDATE", [pickupId]);
+    await blocker.query("SELECT id FROM pickups WHERE id = $1 FOR UPDATE", [
+      pickupId,
+    ]);
     for (const collectorId of collectorIds) {
       pending.push(settleResponse(patchAssignment(collectorId, pickupId)));
       await waitForBlockedAssignments(pending.length);
@@ -200,10 +206,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      collector.id,
-      before.id,
-    );
+    const response = await patchAssignment(collector.id, before.id);
     expect(response.status).toBe(200);
     const result = await response.json();
     const saved = await prisma.pickup.findUniqueOrThrow({
@@ -285,10 +288,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
     });
     await prisma.pickup.delete({ where: { id: deletedPickup.id } });
 
-    const response = await patchAssignment(
-      collector.id,
-      deletedPickup.id,
-    );
+    const response = await patchAssignment(collector.id, deletedPickup.id);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Pickup not found.",
@@ -360,10 +360,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      collector.id,
-      before.id,
-    );
+    const response = await patchAssignment(collector.id, before.id);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Collector not found.",
@@ -423,10 +420,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      customer.id,
-      before.id,
-    );
+    const response = await patchAssignment(customer.id, before.id);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Collector not found.",
@@ -494,10 +488,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      admin.id,
-      before.id,
-    );
+    const response = await patchAssignment(admin.id, before.id);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: "Collector not found.",
@@ -573,10 +564,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      otherCollector.id,
-      before.id,
-    );
+    const response = await patchAssignment(otherCollector.id, before.id);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
@@ -652,10 +640,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      otherCollector.id,
-      before.id,
-    );
+    const response = await patchAssignment(otherCollector.id, before.id);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
@@ -731,10 +716,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      otherCollector.id,
-      before.id,
-    );
+    const response = await patchAssignment(otherCollector.id, before.id);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
@@ -811,10 +793,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      otherCollector.id,
-      before.id,
-    );
+    const response = await patchAssignment(otherCollector.id, before.id);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
@@ -891,10 +870,7 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const response = await patchAssignment(
-      otherCollector.id,
-      before.id,
-    );
+    const response = await patchAssignment(otherCollector.id, before.id);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
@@ -970,19 +946,30 @@ describe("PATCH /api/admin/pickups/[pickupId]/assign", () => {
       include: { items: true },
     });
 
-    const responses = await assignConcurrently(before.id, [collector.id, otherCollector.id]);
-    expect(responses.map((response) => response.status).sort((a, b) => a - b))
-      .toEqual([200, 409]);
-    const successResponse = responses.find((response) => response.status === 200);
-    const failureResponse = responses.find((response) => response.status === 409);
+    const responses = await assignConcurrently(before.id, [
+      collector.id,
+      otherCollector.id,
+    ]);
+    expect(
+      responses.map((response) => response.status).sort((a, b) => a - b),
+    ).toEqual([200, 409]);
+    const successResponse = responses.find(
+      (response) => response.status === 200,
+    );
+    const failureResponse = responses.find(
+      (response) => response.status === 409,
+    );
     if (!successResponse || !failureResponse) {
-      throw new Error("Expected one successful assignment and one conflict response.");
+      throw new Error(
+        "Expected one successful assignment and one conflict response.",
+      );
     }
     const success = await successResponse.json();
     expect(await failureResponse.json()).toEqual({
       error: "Only pending, unassigned pickups can be assigned.",
     });
-    const expectedCollectorId = responses[0].status === 200 ? collector.id : otherCollector.id;
+    const expectedCollectorId =
+      responses[0].status === 200 ? collector.id : otherCollector.id;
     expect(success.collector_id).toBe(expectedCollectorId);
 
     const saved = await prisma.pickup.findUniqueOrThrow({

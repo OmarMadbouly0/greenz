@@ -5,7 +5,9 @@ import { NextRequest } from "next/server";
 import { userRepository } from "@/repositories/user.repository";
 import { UnauthorizedError } from "@/shared/errors/application-error";
 
-export async function getCurrentUser(request?: Request): Promise<AuthenticatedUser> {
+export async function getCurrentUser(
+  request?: Request,
+): Promise<AuthenticatedUser> {
   const cookieStore = request
     ? new NextRequest(request.url, { headers: request.headers }).cookies
     : await cookies();
