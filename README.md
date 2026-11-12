@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GreenZ
+
+GreenZ is a recycling pickup management application built with Next.js. It connects customers, collectors, and administrators to manage recyclable materials, pickup requests, and payouts.
+
+## Features
+
+- Role-based access for customers, collectors, and admins
+- Recycling materials and pricing
+- Pickup requests, collector assignments, and status tracking
+- Wallet balances, payout transactions, and withdrawal requests
+
+## Tech Stack
+
+Next.js, React, TypeScript, PostgreSQL, Prisma, Zod, Vitest, and Testcontainers.
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository and install dependencies:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   git clone https://github.com/OmarMadbouly0/greenz.git
+   cd greenz
+   npm install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure the required database environment variables and `DATABASE_URL` in your local `.env` file.
+3. Start PostgreSQL and prepare the database:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   docker compose up -d
+   npm run db:generate
+   npm run db:push
+   npm run db:seed
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the application:
 
-## Learn More
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run the test suite with `npm test`, or use `npm run test:watch` during development. Integration tests use Testcontainers and require Docker.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> This project is under active development.
